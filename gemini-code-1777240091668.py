@@ -9,51 +9,55 @@ st.set_page_config(page_title="App Preço Teto - Ações BR", layout="wide")
 st.markdown("""
     <style>
     .main { background-color: #f5f7f9; }
-    .card { padding: 20px; border-radius: 10px; background-color: white; box-shadow: 2px 2px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+    .card { padding: 15px; border-radius: 10px; background-color: white; box-shadow: 2px 2px 8px rgba(0,0,0,0.1); margin-bottom: 15px; }
+    .proj-text { color: #007bff; font-weight: bold; }
     </style>
     """, unsafe_allow_html=True)
 
 # 2. Configuração das Ações
 acoes_config = {
-    'CXSE3.SA': {'nome': 'Caixa Seguridade', 'cor': '#005ca9', 'metodo': 'Bazin', 'link': 'https://investidor10.com.br/acoes/cxse3/'},
-    'ITSA4.SA': {'nome': 'Itaúsa', 'cor': '#ec7000', 'metodo': 'Bazin', 'link': 'https://investidor10.com.br/acoes/itsa4/'},
-    'CPLE3.SA': {'nome': 'Copel', 'cor': '#2d3e50', 'metodo': 'Bazin', 'link': 'https://investidor10.com.br/acoes/cple3/'},
-    'AXIA6.SA': {'nome': 'Axia Energia', 'cor': '#3bb54a', 'metodo': 'Graham', 'link': 'https://investidor10.com.br/acoes/axia6/'}
+    'CXSE3.SA': {'nome': 'Caixa Seguridade', 'cor': '#005ca9', 'payout_est': 0.90},
+    'ITSA4.SA': {'nome': 'Itaúsa', 'cor': '#ec7000', 'payout_est': 0.35},
+    'CPLE3.SA': {'nome': 'Copel', 'cor': '#2d3e50', 'payout_est': 0.50},
+    'AXIA6.SA': {'nome': 'Axia Energia', 'cor': '#3bb54a', 'payout_est': 0.25}
 }
 
-# 3. Sidebar
-st.sidebar.header("⚙️ Configurações")
+# 3. Sidebar - Projeções
+st.sidebar.header("⚙️ Configurações Base")
 yield_selecionado = st.sidebar.selectbox("Yield Mínimo Desejado", [0.06, 0.08, 0.09], format_func=lambda x: f"{int(x*100)}%")
 
-if st.sidebar.button("🔄 Forçar Update de Valores"):
+st.sidebar.header("🔮 Projeções de Lucro (LPA)")
+lpa_projs = {}
+for ticker in acoes_config:
+    lpa_projs[ticker] = st.sidebar.number_input(f"LPA Estimado {ticker.replace('.SA','')}", value=1.20, step=0.10)
+
+if st.sidebar.button("🔄 Atualizar Tudo"):
     st.cache_data.clear()
     st.rerun()
 
-# 4. Função de Busca de Dados
+# 4. Busca de Dados
 @st.cache_data(ttl=3600)
 def buscar_dados(tickers):
     resultados = {}
     for t in tickers:
         try:
             tk = yf.Ticker(t)
-            hist = tk.history(period="1y") # Busca 1 ano para o gráfico
+            hist = tk.history(period="1y")
             if hist.empty: continue
             
             resultados[t] = {
                 'preco_atual': hist['Close'].iloc[-1],
-                'dpa': tk.info.get('trailingAnnualDividendRate', 0) or 0,
-                'lpa': tk.info.get('trailingEps', 0) or 0,
-                'vpa': tk.info.get('bookValue', 0) or 0,
+                'dpa_hist': tk.info.get('trailingAnnualDividendRate', 0) or 0.80,
+                'lpa_atual': tk.info.get('trailingEps', 0) or 1.0,
                 'historico': hist
             }
-        except:
-            continue
+        except: continue
     return resultados
 
 dados_br = buscar_dados(list(acoes_config.keys()))
 
-# 5. Dashboard Principal
-st.title("📊 Painel de Ações: Preço Teto & Tendência")
+# 5. Dashboard
+st.title("📊 Preço Teto: Histórico vs. Projetivo")
 
 if dados_br:
     cols = st.columns(4)
@@ -62,41 +66,35 @@ if dados_br:
             with cols[i]:
                 d = dados_br[ticker]
                 
-                # Cálculos
-                if config['metodo'] == 'Bazin':
-                    dividendos = d['dpa'] if d['dpa'] > 0 else 0.80
-                    preco_teto = dividendos / yield_selecionado
-                else:
-                    preco_teto = (22.5 * d['lpa'] * d['vpa']) ** 0.5 if d['lpa'] > 0 else 0
-
-                margem = ((preco_teto - d['preco_atual']) / preco_teto) * 100 if preco_teto > 0 else 0
-                cor_m = "#28a745" if margem > 0 else "#dc3545"
+                # Teto Histórico (Bazin)
+                teto_hist = d['dpa_hist'] / yield_selecionado
+                
+                # Teto Projetivo
+                dpa_proj = lpa_projs[ticker] * config['payout_est']
+                teto_proj = dpa_proj / yield_selecionado
+                
+                margem_proj = ((teto_proj - d['preco_atual']) / teto_proj) * 100
+                cor_m = "#28a745" if margem_proj > 0 else "#dc3545"
 
                 st.markdown(f"""
                     <div class="card" style="border-top: 8px solid {config['cor']};">
                         <h3 style="margin:0;">{ticker.replace('.SA', '')}</h3>
-                        <small>{config['nome']}</small><hr>
-                        Preço: <b>R$ {d['preco_atual']:.2f}</b><br>
-                        Teto: <b>R$ {preco_teto:.2f}</b><br>
-                        <span style="color:{cor_m};">Margem: <b>{margem:.2f}%</b></span>
+                        <hr>
+                        <p style="margin:0; font-size:0.9em;">Preço Atual: <b>R$ {d['preco_atual']:.2f}</b></p>
+                        <p style="margin:0; font-size:0.9em;">Teto Histórico: <b>R$ {teto_hist:.2f}</b></p>
+                        <p style="margin:0; font-size:1em;" class="proj-text">Teto Projetivo: R$ {teto_proj:.2f}</p>
+                        <div style="background-color:{cor_m}; color:white; text-align:center; border-radius:5px; margin-top:10px;">
+                            Margem Proj: {margem_proj:.1f}%
+                        </div>
                     </div>
                 """, unsafe_allow_html=True)
 
+    # 6. Gráfico de Tendência (Mantido)
     st.markdown("---")
-
-    # 6. Seção de Gráficos
-    st.subheader("📈 Análise de Tendência (Último Ano)")
-    selecionado = st.selectbox("Selecione a ação para detalhamento:", list(dados_br.keys()), format_func=lambda x: x.replace('.SA', ''))
-    
+    st.subheader("📈 Análise de Tendência")
+    selecionado = st.selectbox("Ver gráfico detalhado:", list(dados_br.keys()))
     df_plot = dados_br[selecionado]['historico']
-    
     fig = go.Figure()
-    # Preço de Fechamento
-    fig.add_trace(go.Scatter(x=df_plot.index, y=df_plot['Close'], name='Preço de Mercado', line=dict(color=acoes_config[selecionado]['cor'], width=2)))
-    # Média Móvel 50 dias
-    fig.add_trace(go.Scatter(x=df_plot.index, y=df_plot['Close'].rolling(window=50).mean(), name='Tendência (Média 50d)', line=dict(color='gray', dash='dot')))
-
-    fig.update_layout(template="plotly_white", height=450, hovermode="x unified", margin=dict(l=0, r=0, t=20, b=0))
+    fig.add_trace(go.Scatter(x=df_plot.index, y=df_plot['Close'], name='Preço', line=dict(color=acoes_config[selecionado]['cor'])))
+    fig.add_trace(go.Scatter(x=df_plot.index, y=df_plot['Close'].rolling(50).mean(), name='Média 50d', line=dict(color='gray', dash='dot')))
     st.plotly_chart(fig, use_container_width=True)
-else:
-    st.warning("Aguardando carregamento de dados...")
