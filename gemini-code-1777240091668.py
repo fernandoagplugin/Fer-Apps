@@ -7,11 +7,10 @@ import numpy as np
 # 1. Configurações da Página
 st.set_page_config(page_title="Preço Teto Ações", layout="wide")
 
-# Estilos Visuais - Foco na Fixação e Design
+# Estilos Visuais - Design Limpo e Assinatura
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;700&display=swap');
-    
     .main-title { font-family: 'Roboto', sans-serif; font-size: 48px; font-weight: 700; text-align: center; margin-bottom: 0px; color: #1E1E1E; }
     .subtitle { font-family: 'Roboto', sans-serif; font-size: 18px; text-align: center; color: #666; margin-top: -5px; margin-bottom: 30px; }
     .card { padding: 20px; border-radius: 15px; background-color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; height: 100%; border: 1px solid #eee; display: flex; flex-direction: column; align-items: center; }
@@ -20,11 +19,11 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# Cabeçalho Fixo
+# Cabeçalho
 st.markdown('<div class="main-title">Preço Teto Ações</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitle">por Fer</div>', unsafe_allow_html=True)
 
-# 2. Configuração com Tickers e Logos estáveis
+# 2. Configuração com Logos (Links Estáveis)
 acoes_config = {
     'CXSE3.SA': {
         'nome': 'Caixa Seguridade', 'cor': '#005ca9', 'payout_base': 0.90, 'lpa_base': 1.15,
@@ -40,13 +39,14 @@ acoes_config = {
     },
     'AXIA6.SA': {
         'nome': 'Axia Energia', 'cor': '#3bb54a', 'payout_base': 1.10, 'lpa_base': 0.50,
-        'logo': 'https://s3-symbol-logo.tradingview.com/braskem-pna--big.svg' # Placeholder de energia estável
+        'logo': 'https://cdn-icons-png.flaticon.com/512/2731/2731636.png'
     }
 }
 
-# 3. Sidebar - Payout agora vai até 200%
-st.sidebar.header("⚙️ Parâmetros")
-yield_alvo = st.sidebar.selectbox("Yield Mínimo Desejado", [0.06, 0.08, 0.10], index=0, format_func=lambda x: f"{int(x*100)}%")
+# 3. Sidebar - Yield e Payout Flexíveis
+st.sidebar.header("⚙️ Parâmetros de Mercado")
+# Yield de 6% a 12% como solicitado
+yield_alvo = st.sidebar.slider("Yield Mínimo Desejado (%)", 6, 12, 6) / 100
 
 st.sidebar.markdown("---")
 st.sidebar.header("🔮 Projeções Futuras")
@@ -54,22 +54,19 @@ projeções = {}
 for ticker, conf in acoes_config.items():
     with st.sidebar.expander(f"Ajustar {ticker[:5]}"):
         lpa_p = st.number_input(f"LPA Projetado ({ticker[:5]})", value=conf['lpa_base'], step=0.05, key=f"lpa_{ticker}")
-        # AJUSTE: Payout agora com max_value de 200
+        # Payout até 200% para casos como Axia
         payout_p = st.slider(f"Payout % ({ticker[:5]})", 10, 200, int(conf['payout_base']*100), key=f"p_{ticker}") / 100
         projeções[ticker] = {'lpa': lpa_p, 'payout': payout_p}
 
 @st.cache_data(ttl=3600)
 def buscar_dados(tickers):
     dados = {}
-    divo_tk = yf.Ticker("DIVO11.SA")
-    divo_hist = divo_tk.history(period="10y")['Close']
-    
+    divo_hist = yf.Ticker("DIVO11.SA").history(period="10y")['Close']
     for t in tickers:
         try:
             tk = yf.Ticker(t)
             hist = tk.history(period="10y")['Close']
             if hist.empty: continue
-            
             divo_sync = divo_hist.reindex(hist.index, method='ffill')
             dados[t] = {
                 'preco': hist.iloc[-1],
@@ -88,24 +85,22 @@ for i, (ticker, conf) in enumerate(acoes_config.items()):
     if ticker in dados_mercado:
         with cols[i]:
             d = dados_mercado[ticker]
-            # Cálculo do dividendo esperado (LPA * Payout)
             dpa_proj = projeções[ticker]['lpa'] * projeções[ticker]['payout']
             teto_proj = dpa_proj / yield_alvo
-            
             margem = ((teto_proj - d['preco']) / teto_proj) * 100 if teto_proj > 0 else -100
             cor_m = "#28a745" if margem > 0 else "#dc3545"
 
             st.markdown(f"""
                 <div class="card" style="border-top: 8px solid {conf['cor']};">
                     <div class="logo-container">
-                        <img src="{conf['logo']}" class="logo-img" onerror="this.src='https://cdn-icons-png.flaticon.com/512/25/25694.png';">
+                        <img src="{conf['logo']}" class="logo-img" onerror="this.style.display='none'">
                     </div>
                     <b style="font-size:1.4em;">{ticker[:5]}</b><br>
                     <small style="color:gray;">{conf['nome']}</small>
                     <hr style="width:100%">
-                    <p style="margin:0; font-size:1em;">Cotação: <b>R$ {d['preco']:.2f}</b></p>
-                    <p style="margin:5px 0; font-size:1.1em;">Dividendos: <b>R$ {dpa_proj:.2f}</b></p>
-                    <p style="margin:5px 0; font-size:1.2em; color:{cor_m};">Teto: <b>R$ {teto_proj:.2f}</b></p>
+                    <p style="margin:0; font-size:0.95em;">Cotação: <b>R$ {d['preco']:.2f}</b></p>
+                    <p style="margin:0; font-size:0.95em;">Div. Estimado: <b>R$ {dpa_proj:.2f}</b></p>
+                    <p style="margin:10px 0 5px 0; font-size:1.2em; color:{cor_m};">Teto: <b>R$ {teto_proj:.2f}</b></p>
                     <div style="background-color:{cor_m}; color:white; text-align:center; border-radius:8px; margin-top:auto; padding:8px; font-weight:bold; width:100%;">
                         Margem: {margem:.1f}%
                     </div>
@@ -114,13 +109,12 @@ for i, (ticker, conf) in enumerate(acoes_config.items()):
 
 st.markdown("---")
 
-# 5. Gráfico de Performance
-st.subheader("📊 Performance Acumulada vs DIVO11 e CDI (10 Anos)")
+# 5. Gráfico de Performance 10 Anos
+st.subheader(f"📊 Performance vs DIVO11 e CDI (10 Anos)")
 ticker_sel = st.selectbox("Selecione o Ativo:", list(dados_mercado.keys()), format_func=lambda x: x[:5])
 
 if ticker_sel in dados_mercado:
     d = dados_mercado[ticker_sel]
-    # CDI 10 anos (~11.6% aa médio)
     cdi_norm = [100 * (1.116)**(i/252) for i in range(len(d['datas']))]
 
     fig = go.Figure()
