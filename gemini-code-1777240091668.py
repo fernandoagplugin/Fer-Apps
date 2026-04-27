@@ -7,16 +7,16 @@ import numpy as np
 # 1. Configurações da Página
 st.set_page_config(page_title="Preço Teto Ações", layout="wide")
 
-# Estilos Visuais - Melhorando o Título e Logos
+# Estilos Visuais
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;700&display=swap');
     
     .main-title { font-family: 'Roboto', sans-serif; font-size: 48px; font-weight: 700; text-align: center; margin-bottom: 0px; color: #1E1E1E; }
     .subtitle { font-family: 'Roboto', sans-serif; font-size: 18px; text-align: center; color: #666; margin-top: -10px; margin-bottom: 30px; }
-    .card { padding: 20px; border-radius: 15px; background-color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; height: 100%; border: 1px solid #eee; }
-    .logo-container { display: flex; justify-content: center; align-items: center; margin-bottom: 15px; height: 70px; }
-    .logo-img { max-width: 80%; max-height: 60px; object-fit: contain; }
+    .card { padding: 20px; border-radius: 15px; background-color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; height: 100%; border: 1px solid #eee; display: flex; flex-direction: column; align-items: center; }
+    .logo-container { display: flex; justify-content: center; align-items: center; margin-bottom: 15px; height: 80px; width: 100%; }
+    .logo-img { max-width: 120px; max-height: 70px; object-fit: contain; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -24,23 +24,23 @@ st.markdown("""
 st.markdown('<div class="main-title">Preço Teto Ações</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitle">por Fer</div>', unsafe_allow_html=True)
 
-# 2. Configuração com Links Diretos de Logos (Solução Definitiva)
+# 2. Configuração com Links Oficiais de RI (Mais estáveis)
 acoes_config = {
     'CXSE3.SA': {
         'nome': 'Caixa Seguridade', 'cor': '#005ca9', 'payout_base': 0.90, 'lpa_base': 1.15,
-        'logo': 'https://s3-symbol-logo.tradingview.com/caixa-seguridade-on-nm--big.svg'
+        'logo': 'https://www.caixaseguridade.com.br/StaticFiles/img/Logo_Caixa_Seguridade.png'
     },
     'ITSA4.SA': {
         'nome': 'Itaúsa', 'cor': '#ec7000', 'payout_base': 0.35, 'lpa_base': 1.20,
-        'logo': 'https://s3-symbol-logo.tradingview.com/itausa--big.svg'
+        'logo': 'https://www.itausa.com.br/assets/images/logo-itausa.png'
     },
     'CPLE3.SA': {
         'nome': 'Copel', 'cor': '#2d3e50', 'payout_base': 0.50, 'lpa_base': 0.65,
-        'logo': 'https://s3-symbol-logo.tradingview.com/copel--big.svg'
+        'logo': 'https://ri.copel.com/wp-content/themes/copel-ri/assets/images/logo.png'
     },
     'AXIA6.SA': {
         'nome': 'Axia Energia', 'cor': '#3bb54a', 'payout_base': 0.25, 'lpa_base': 0.50,
-        'logo': 'https://files.comunidadeestatistica.com.br/logos/companies/default.png' # Placeholder para AXIA
+        'logo': 'https://axiaenergia.com.br/wp-content/uploads/2021/11/logo_axia_energia.png'
     }
 }
 
@@ -96,10 +96,10 @@ for i, (ticker, conf) in enumerate(acoes_config.items()):
                     </div>
                     <b style="font-size:1.4em;">{ticker[:5]}</b><br>
                     <small style="color:gray;">{conf['nome']}</small>
-                    <hr>
+                    <hr style="width:100%">
                     <p style="margin:0; font-size:1em;">Cotação: <b>R$ {d['preco']:.2f}</b></p>
                     <p style="margin:5px 0; font-size:1.2em; color:{cor_m};">Teto: <b>R$ {teto_proj:.2f}</b></p>
-                    <div style="background-color:{cor_m}; color:white; text-align:center; border-radius:8px; margin-top:10px; padding:8px; font-weight:bold;">
+                    <div style="background-color:{cor_m}; color:white; text-align:center; border-radius:8px; margin-top:auto; padding:8px; font-weight:bold; width:100%;">
                         Margem: {margem:.1f}%
                     </div>
                 </div>
@@ -113,7 +113,6 @@ ticker_sel = st.selectbox("Selecione o Ativo:", list(dados_mercado.keys()), form
 
 if ticker_sel in dados_mercado:
     d = dados_mercado[ticker_sel]
-    # CDI 10 anos (~11.6% aa médio)
     cdi_norm = [100 * (1.116)**(i/252) for i in range(len(d['datas']))]
 
     fig = go.Figure()
