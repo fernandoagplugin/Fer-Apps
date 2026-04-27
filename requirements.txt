@@ -1,2 +1,4 @@
-beautifulsoup4
-requests
+streamlit
+yfinance
+pandas
+plotly
