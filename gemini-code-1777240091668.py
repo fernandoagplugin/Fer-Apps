@@ -2,94 +2,105 @@ import streamlit as st
 import yfinance as yf
 import pandas as pd
 import plotly.graph_objects as go
-import requests
-from bs4 import BeautifulSoup
 
 # 1. Configurações Iniciais
-st.set_page_config(page_title="App Preço Teto Automatizado", layout="wide")
+st.set_page_config(page_title="App Preço Teto Blindado", layout="wide")
 
-# 2. Definição das Ações e Links
+st.markdown("""
+    <style>
+    .main { background-color: #f5f7f9; }
+    .card { padding: 15px; border-radius: 10px; background-color: white; box-shadow: 2px 2px 8px rgba(0,0,0,0.1); margin-bottom: 15px; }
+    </style>
+    """, unsafe_allow_html=True)
+
+# 2. Definição das Ações e Parâmetros Base
 acoes_config = {
-    'CXSE3': {'nome': 'Caixa Seguridade', 'cor': '#005ca9', 'payout': 0.90, 'url': 'https://investidor10.com.br/acoes/cxse3/'},
-    'ITSA4': {'nome': 'Itaúsa', 'cor': '#ec7000', 'payout': 0.35, 'url': 'https://investidor10.com.br/acoes/itsa4/'},
-    'CPLE3': {'nome': 'Copel', 'cor': '#2d3e50', 'payout': 0.50, 'url': 'https://investidor10.com.br/acoes/cple3/'},
-    'AXIA6': {'nome': 'Axia Energia', 'cor': '#3bb54a', 'payout': 0.25, 'url': 'https://investidor10.com.br/acoes/axia6/'}
+    'CXSE3.SA': {'nome': 'Caixa Seguridade', 'cor': '#005ca9', 'payout': 0.90},
+    'ITSA4.SA': {'nome': 'Itaúsa', 'cor': '#ec7000', 'payout': 0.35},
+    'CPLE3.SA': {'nome': 'Copel', 'cor': '#2d3e50', 'payout': 0.50},
+    'AXIA6.SA': {'nome': 'Axia Energia', 'cor': '#3bb54a', 'payout': 0.25}
 }
 
-# 3. Função de Web Scraping para o Investidor 10
-@st.cache_data(ttl=43200) # Atualiza a cada 12 horas
-def extrair_dados_investidor10(ticker, url):
-    headers = {"User-Agent": "Mozilla/5.0"}
-    try:
-        response = requests.get(url, headers=headers)
-        soup = BeautifulSoup(response.text, 'html.parser')
-        
-        # Busca os cards de indicadores
-        indicadores = soup.find_all("div", class_="_card-body")
-        dados = {}
-        for ind in indicadores:
-            titulo = ind.find("span").text.strip() if ind.find("span") else ""
-            valor = ind.find("div", class_="_card-value").text.strip() if ind.find("div", class_="_card-value") else "0"
-            
-            # Limpeza do valor (converte "R$ 1,20" para 1.20)
-            valor_limpo = float(valor.replace("R$", "").replace(".", "").replace(",", ".").replace("%", "").strip())
-            
-            if "LPA" in titulo: dados['lpa'] = valor_limpo
-            if "VPA" in titulo: dados['vpa'] = valor_limpo
-            if "DY" in titulo: dados['dy_hist'] = valor_limpo
-        return dados
-    except:
-        return {'lpa': 1.0, 'vpa': 1.0, 'dy_hist': 6.0}
+# 3. Sidebar - Ajustes de Projeção
+st.sidebar.header("⚙️ Configurações")
+yield_alvo = st.sidebar.selectbox("Yield Desejado", [0.06, 0.08, 0.09], index=1, format_func=lambda x: f"{int(x*100)}%")
 
-# 4. Interface e Cálculos
-st.title("📈 Preço Teto Automático (Web Scraping)")
-yield_alvo = st.sidebar.selectbox("Yield Desejado", [0.06, 0.08, 0.09], format_func=lambda x: f"{int(x*100)}%")
+st.sidebar.markdown("---")
+st.sidebar.header("🔮 Ajustar LPA Estimado")
+lpa_manual = {}
+for ticker in acoes_config:
+    # Valor padrão baseado em estimativas de mercado para 2024/2025
+    val_padrao = 1.30 if "CXSE" in ticker else 1.15
+    lpa_manual[ticker] = st.sidebar.number_input(f"LPA {ticker[:5]}", value=val_padrao, step=0.05)
 
-if st.sidebar.button("🔄 Sincronizar com Investidor 10"):
+if st.sidebar.button("🔄 Atualizar Cotações"):
     st.cache_data.clear()
     st.rerun()
 
-cols = st.columns(len(acoes_config))
+# 4. Busca de Dados (Yahoo Finance - Mais estável que Scraping)
+@st.cache_data(ttl=3600)
+def buscar_cotacoes(tickers):
+    dados = {}
+    for t in tickers:
+        try:
+            tk = yf.Ticker(t)
+            # Tenta pegar o preço atual
+            info = tk.info
+            preco = info.get('currentPrice') or info.get('regularMarketPrice')
+            
+            # Se falhar o info, pega pelo histórico
+            if not preco:
+                hist = tk.history(period="1d")
+                preco = hist['Close'].iloc[-1]
+                
+            dados[t] = {'preco': preco, 'hist': tk.history(period="1y")}
+        except:
+            dados[t] = {'preco': 0.01, 'hist': pd.DataFrame()}
+    return dados
 
-for i, (ticker, info) in enumerate(acoes_config.items()):
+dados_mercado = buscar_cotacoes(list(acoes_config.keys()))
+
+# 5. Dashboard
+st.title("📈 Preço Teto: Projeção de Dividendos")
+
+cols = st.columns(4)
+for i, (ticker, config) in enumerate(acoes_config.items()):
     with cols[i]:
-        # Busca Preço no Yahoo Finance
-        yf_ticker = yf.Ticker(f"{ticker}.SA")
-        preco_atual = yf_ticker.history(period="1d")['Close'].iloc[-1]
+        d = dados_mercado.get(ticker)
+        p_atual = d['preco']
         
-        # Extrai LPA e VPA do Investidor 10
-        dados_i10 = extrair_dados_investidor10(ticker, info['url'])
+        # CÁLCULO: LPA Estimado (Lateral) * Payout / Yield
+        dpa_projetado = lpa_manual[ticker] * config['payout']
+        teto = dpa_projetado / yield_alvo
         
-        lpa = dados_i10.get('lpa', 0)
-        vpa = dados_i10.get('vpa', 0)
-        
-        # Cálculo Teto Projetivo (LPA * Payout / Yield)
-        teto_proj = (lpa * info['payout']) / yield_alvo
-        
-        # Cálculo Graham (apenas para AXIA6 ou como segunda métrica)
-        teto_graham = (22.5 * lpa * vpa) ** 0.5 if lpa > 0 and vpa > 0 else 0
-        
-        margem = ((teto_proj - preco_atual) / teto_proj) * 100
-        cor = "green" if margem > 0 else "red"
+        # Margem de Segurança
+        margem = ((teto - p_atual) / teto) * 100 if teto > 0 else 0
+        cor_m = "#28a745" if margem > 0 else "#dc3545"
 
         st.markdown(f"""
-            <div style="padding:15px; border-radius:10px; background-color:white; border-top:8px solid {info['cor']}; box-shadow: 2px 2px 10px rgba(0,0,0,0.1);">
-                <h4>{ticker}</h4>
-                <p style="font-size:0.8em; color:gray;">{info['nome']}</p>
+            <div class="card" style="border-top: 8px solid {config['cor']};">
+                <h3 style="margin:0;">{ticker.replace('.SA', '')}</h3>
+                <p style="color:gray; font-size:0.8em; margin:0;">{config['nome']}</p>
                 <hr>
-                <small>Preço Atual:</small> <b>R$ {preco_atual:.2f}</b><br>
-                <small>LPA (I10):</small> <b>R$ {lpa:.2f}</b><br>
-                <small>Preço Teto:</small> <b style="font-size:1.1em; color:#007bff;">R$ {teto_proj:.2f}</b><br>
-                <div style="margin-top:10px; padding:5px; background-color:{cor}; color:white; text-align:center; border-radius:5px;">
+                <small>Preço Atual:</small> <b>R$ {p_atual:.2f}</b><br>
+                <small>LPA Est.:</small> <b>R$ {lpa_manual[ticker]:.2f}</b><br>
+                <small>Dividendos Est.:</small> <b>R$ {dpa_projetado:.2f}</b><br>
+                <p style="margin-top:10px; margin-bottom:5px;">Preço Teto:</p>
+                <b style="font-size:1.4em; color:#007bff;">R$ {teto:.2f}</b>
+                <div style="margin-top:10px; padding:5px; background-color:{cor_m}; color:white; text-align:center; border-radius:5px; font-weight:bold;">
                     Margem: {margem:.1f}%
                 </div>
             </div>
         """, unsafe_allow_html=True)
 
-# 5. Gráfico de Tendência
+# 6. Gráfico de Tendência
 st.markdown("---")
 ticker_sel = st.selectbox("Selecione para ver o gráfico:", list(acoes_config.keys()))
-df_hist = yf.Ticker(f"{ticker_sel}.SA").history(period="1y")
-fig = go.Figure(data=[go.Scatter(x=df_hist.index, y=df_hist['Close'], line=dict(color=acoes_config[ticker_sel]['cor']))])
-fig.update_layout(title=f"Tendência 12 Meses - {ticker_sel}", template="plotly_white", height=400)
-st.plotly_chart(fig, use_container_width=True)
+df_hist = dados_mercado[ticker_sel]['hist']
+
+if not df_hist.empty:
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=df_hist.index, y=df_hist['Close'], name='Preço', line=dict(color=acoes_config[ticker_sel]['cor'])))
+    fig.add_trace(go.Scatter(x=df_hist.index, y=df_hist['Close'].rolling(50).mean(), name='Média 50d', line=dict(color='gray', dash='dot')))
+    fig.update_layout(template="plotly_white", height=400, margin=dict(l=0, r=0, t=20, b=0))
+    st.plotly_chart(fig, use_container_width=True)
