@@ -2,41 +2,6 @@ import streamlit as st
 import yfinance as yf
 import pandas as pd
 import datetime
-import json
-import os
-
-# --- Sistema de Salvamento de Configurações ---
-ARQUIVO_CONFIG = "config_acoes.json"
-
-def carregar_configuracoes():
-    """Carrega as configurações salvas ou define valores padrão."""
-    if os.path.exists(ARQUIVO_CONFIG):
-        with open(ARQUIVO_CONFIG, "r") as f:
-            return json.load(f)
-    return {
-        "acao1": "BBAS3.SA", "acao2": "PETR4.SA", 
-        "acao3": "ITUB4.SA", "acao4": "VALE3.SA", 
-        "taxa_desejada": 6.0
-    }
-
-def salvar_configuracoes():
-    """Salva os valores atuais no arquivo JSON sempre que algo é alterado."""
-    config = {
-        "acao1": st.session_state.acao1.upper(),
-        "acao2": st.session_state.acao2.upper(),
-        "acao3": st.session_state.acao3.upper(),
-        "acao4": st.session_state.acao4.upper(),
-        "taxa_desejada": st.session_state.taxa_desejada
-    }
-    with open(ARQUIVO_CONFIG, "w") as f:
-        json.dump(config, f)
-
-# Inicializando a memória do Streamlit para corrigir o bug do valor retornando
-if "inicializado" not in st.session_state:
-    config_salva = carregar_configuracoes()
-    for chave, valor in config_salva.items():
-        st.session_state[chave] = valor
-    st.session_state.inicializado = True
 
 # --- Configuração da Página ---
 st.set_page_config(page_title="Monitor de Preço Teto", layout="wide")
@@ -49,29 +14,20 @@ st.markdown("---")
 st.sidebar.header("⚙️ Configurações")
 st.sidebar.write("Insira os códigos das ações (adicione .SA para ativos brasileiros):")
 
-# Os campos agora usam 'key' (ligados diretamente à memória) e acionam o salvamento ao mudar
-st.sidebar.text_input("Ação 1", key="acao1", on_change=salvar_configuracoes)
-st.sidebar.text_input("Ação 2", key="acao2", on_change=salvar_configuracoes)
-st.sidebar.text_input("Ação 3", key="acao3", on_change=salvar_configuracoes)
-st.sidebar.text_input("Ação 4", key="acao4", on_change=salvar_configuracoes)
+acao1 = st.sidebar.text_input("Ação 1", value="BBAS3.SA").upper()
+acao2 = st.sidebar.text_input("Ação 2", value="PETR4.SA").upper()
+acao3 = st.sidebar.text_input("Ação 3", value="ITUB4.SA").upper()
+acao4 = st.sidebar.text_input("Ação 4", value="VALE3.SA").upper()
 
-st.sidebar.number_input("Taxa de Retorno Desejada (%)", step=0.5, key="taxa_desejada", on_change=salvar_configuracoes)
-
-# Converte a taxa para decimal para o cálculo matemático
-taxa_calc = st.session_state.taxa_desejada / 100
+taxa_desejada = st.sidebar.number_input("Taxa de Retorno Desejada (%)", value=6.0, step=0.5) / 100
 
 if st.sidebar.button("🔄 Atualizar Cotações Agora"):
     st.rerun()
 
-acoes = [
-    st.session_state.acao1.upper(), 
-    st.session_state.acao2.upper(), 
-    st.session_state.acao3.upper(), 
-    st.session_state.acao4.upper()
-]
+acoes = [acao1, acao2, acao3, acao4]
 
 # --- Função para calcular Dividendos dos últimos 12 meses ---
-@st.cache_data(ttl=3600)
+@st.cache_data(ttl=3600) # Faz cache por 1 hora para não sobrecarregar o Yahoo Finance
 def obter_dividendos_12m(ticker):
     try:
         acao = yf.Ticker(ticker)
@@ -79,6 +35,7 @@ def obter_dividendos_12m(ticker):
         if dividendos.empty:
             return 0.0
         
+        # Filtra apenas os últimos 12 meses
         um_ano_atras = pd.Timestamp.today(tz='UTC') - pd.DateOffset(years=1)
         dividendos.index = pd.to_datetime(dividendos.index, utc=True)
         divs_recentes = dividendos[dividendos.index >= um_ano_atras]
@@ -91,7 +48,7 @@ def obter_dividendos_12m(ticker):
 colunas = st.columns(4)
 
 for i, ticker in enumerate(acoes):
-    if not ticker.strip():
+    if not ticker:
         continue
         
     with colunas[i]:
@@ -107,7 +64,7 @@ for i, ticker in enumerate(acoes):
             div_12m = obter_dividendos_12m(ticker)
             
             # Cálculo do Preço Teto
-            preco_teto = div_12m / taxa_calc if taxa_calc > 0 else 0
+            preco_teto = div_12m / taxa_desejada if taxa_desejada > 0 else 0
             
             # Cálculo da Margem de Segurança
             if preco_teto > 0:
@@ -118,8 +75,9 @@ for i, ticker in enumerate(acoes):
             # Formatação Visual
             st.subheader(ticker)
             st.metric("Preço Atual", f"R$ {preco_atual:.2f}")
-            st.metric(f"Preço Teto ({st.session_state.taxa_desejada:.1f}%)", f"R$ {preco_teto:.2f}")
+            st.metric(f"Preço Teto ({taxa_desejada*100:.1f}%)", f"R$ {preco_teto:.2f}")
             
+            # Cor da Margem de Segurança (Verde se estiver barato, Vermelho se estiver caro)
             cor = "normal" if margem >= 0 else "inverse"
             st.metric("Margem de Segurança", f"{margem:.2f}%", delta=f"{margem:.2f}%", delta_color=cor)
             
