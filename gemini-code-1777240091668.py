@@ -1,177 +1,132 @@
 import streamlit as st
 import yfinance as yf
 import pandas as pd
-import plotly.graph_objects as go
-import numpy as np
+import datetime
 import json
 import os
 
-# 1. Configurações da Página
-st.set_page_config(page_title="Preço Teto Ações", layout="wide")
-
-# --- LÓGICA DE PERSISTÊNCIA ---
-DB_FILE = "settings_cache.json"
+# --- Sistema de Salvamento de Configurações ---
+ARQUIVO_CONFIG = "config_acoes.json"
 
 def carregar_configuracoes():
-    if os.path.exists(DB_FILE):
-        try:
-            with open(DB_FILE, "r") as f:
-                return json.load(f)
-        except:
-            return {}
-    return {}
-
-def salvar_configuracoes(config_dict):
-    with open(DB_FILE, "w") as f:
-        json.dump(config_dict, f)
-
-if 'user_settings' not in st.session_state:
-    st.session_state.user_settings = carregar_configuracoes()
-
-# --- ESTILOS VISUAIS ---
-st.markdown("""
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;700&display=swap');
-    .main-title { font-family: 'Roboto', sans-serif; font-size: 48px; font-weight: 700; text-align: center; margin-bottom: 0px; color: #1E1E1E; }
-    .subtitle { font-family: 'Roboto', sans-serif; font-size: 18px; text-align: center; color: #666; margin-top: -5px; margin-bottom: 30px; font-style: italic; }
-    .card { padding: 20px; border-radius: 15px; background-color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; height: 100%; border: 1px solid #eee; display: flex; flex-direction: column; align-items: center; }
-    .logo-container { display: flex; justify-content: center; align-items: center; margin-bottom: 15px; height: 80px; width: 100%; }
-    .logo-img { max-width: 120px; max-height: 70px; object-fit: contain; }
-    </style>
-    """, unsafe_allow_html=True)
-
-st.markdown('<div class="main-title">Preço Teto Ações</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitle">por Fer</div>', unsafe_allow_html=True)
-
-# 2. Configuração de Ativos (Links RAW do seu GitHub)
-base_raw = "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/"
-
-acoes_config = {
-    'AXIA6.SA': {
-        'nome': 'Axia Energia', 'cor': '#3bb54a', 'payout_base': 1.20, 'lpa_base': 0.65,
-        'logo': f"{base_raw}AXIA.png"
-    },
-    'CPLE3.SA': {
-        'nome': 'Copel', 'cor': '#2d3e50', 'payout_base': 0.55, 'lpa_base': 0.85,
-        'logo': f"{base_raw}COPEL.png"
-    },
-    'CXSE3.SA': {
-        'nome': 'Caixa Seguridade', 'cor': '#005ca9', 'payout_base': 0.90, 'lpa_base': 1.40,
-        'logo': f"{base_raw}Caixa.png"
-    },
-    'ITSA4.SA': {
-        'nome': 'Itaúsa', 'cor': '#ec7000', 'payout_base': 0.45, 'lpa_base': 1.55,
-        'logo': f"{base_raw}Itausa.png"
+    """Carrega as configurações salvas ou define valores padrão."""
+    if os.path.exists(ARQUIVO_CONFIG):
+        with open(ARQUIVO_CONFIG, "r") as f:
+            return json.load(f)
+    return {
+        "acao1": "BBAS3.SA", "acao2": "PETR4.SA", 
+        "acao3": "ITUB4.SA", "acao4": "VALE3.SA", 
+        "taxa_desejada": 6.0
     }
-}
 
-# 3. Sidebar - Parâmetros e Projeções
-st.sidebar.header("⚙️ Parâmetros de Mercado")
+def salvar_configuracoes():
+    """Salva os valores atuais no arquivo JSON sempre que algo é alterado."""
+    config = {
+        "acao1": st.session_state.acao1.upper(),
+        "acao2": st.session_state.acao2.upper(),
+        "acao3": st.session_state.acao3.upper(),
+        "acao4": st.session_state.acao4.upper(),
+        "taxa_desejada": st.session_state.taxa_desejada
+    }
+    with open(ARQUIVO_CONFIG, "w") as f:
+        json.dump(config, f)
 
-if st.sidebar.button("🔄 Atualizar Preços Agora"):
-    st.cache_data.clear()
+# Inicializando a memória do Streamlit para corrigir o bug do valor retornando
+if "inicializado" not in st.session_state:
+    config_salva = carregar_configuracoes()
+    for chave, valor in config_salva.items():
+        st.session_state[chave] = valor
+    st.session_state.inicializado = True
 
-saved_yield = st.session_state.user_settings.get('yield_alvo', 0.06)
-yield_alvo = st.sidebar.slider("Yield Mínimo Desejado (%)", 6, 12, int(saved_yield*100)) / 100
+# --- Configuração da Página ---
+st.set_page_config(page_title="Monitor de Preço Teto", layout="wide")
 
-if yield_alvo != saved_yield:
-    st.session_state.user_settings['yield_alvo'] = yield_alvo
-    salvar_configuracoes(st.session_state.user_settings)
-
-st.sidebar.markdown("---")
-st.sidebar.header("📈 Projeções Futuras (2026)")
-
-projeções = {}
-for ticker, conf in acoes_config.items():
-    with st.sidebar.expander(f"Ajustar {ticker[:5]}"):
-        s_lpa = st.session_state.user_settings.get(f'lpa_{ticker}', conf['lpa_base'])
-        s_payout = st.session_state.user_settings.get(f'payout_{ticker}', conf['payout_base'])
-        
-        lpa_p = st.number_input(f"LPA ({ticker[:5]})", value=float(s_lpa), step=0.01, key=f"in_lpa_{ticker}")
-        payout_p = st.slider(f"Payout % ({ticker[:5]})", 10, 200, int(s_payout*100), key=f"in_p_{ticker}") / 100
-        
-        if lpa_p != s_lpa or (payout_p != s_payout):
-            st.session_state.user_settings[f'lpa_{ticker}'] = lpa_p
-            st.session_state.user_settings[f'payout_{ticker}'] = payout_p
-            salvar_configuracoes(st.session_state.user_settings)
-            
-        projeções[ticker] = {'lpa': lpa_p, 'payout': payout_p}
-
-# 4. Busca de Dados (Yahoo Finance)
-@st.cache_data(ttl=60)
-def buscar_dados(tickers):
-    todos = tickers + ['BOVA11.SA', 'DIVO11.SA']
-    dados = {}
-    for t in todos:
-        try:
-            tk = yf.Ticker(t)
-            hist = tk.history(period="10y")
-            if hist.empty: continue
-            dados[t] = {
-                'preco': hist['Close'].iloc[-1],
-                'hist_norm': (hist['Close'] / hist['Close'].iloc[0]) * 100,
-                'datas': hist.index
-            }
-        except: continue
-    return dados
-
-dados_mercado = buscar_dados(list(acoes_config.keys()))
-
-# 5. Interface de Cards
-cols = st.columns(4)
-for i, (ticker, conf) in enumerate(acoes_config.items()):
-    if ticker in dados_mercado:
-        with cols[i]:
-            d = dados_mercado[ticker]
-            dpa_proj = projeções[ticker]['lpa'] * projeções[ticker]['payout']
-            teto_proj = dpa_proj / yield_alvo
-            margem = ((teto_proj - d['preco']) / teto_proj) * 100 if teto_proj > 0 else -100
-            cor_m = "#28a745" if margem > 0 else "#dc3545"
-
-            st.markdown(f"""
-                <div class="card" style="border-top: 8px solid {conf['cor']};">
-                    <div class="logo-container"><img src="{conf['logo']}" class="logo-img"></div>
-                    <b style="font-size:1.3em;">{ticker[:5]}</b><br>
-                    <small style="color:gray;">{conf['nome']}</small><hr style="width:100%">
-                    <p style="margin:0; font-size:0.95em;">Preço Atual: <b>R$ {d['preco']:.2f}</b></p>
-                    <p style="margin:0; font-size:0.95em;">Div. Projetado: <b>R$ {dpa_proj:.2f}</b></p>
-                    <p style="margin:10px 0 5px 0; font-size:1.2em; color:{cor_m};">Teto: <b>R$ {teto_proj:.2f}</b></p>
-                    <div style="background-color:{cor_m}; color:white; text-align:center; border-radius:8px; margin-top:auto; padding:8px; font-weight:bold; width:100%;">
-                        Margem: {margem:.1f}%
-                    </div>
-                </div>
-            """, unsafe_allow_html=True)
-
-# 6. Gráfico Comparativo de Rendimento
+st.title("📊 Monitor de Preço Teto em Tempo Real")
+st.markdown("Cálculo baseado no Método Bazin (Soma dos Dividendos dos últimos 12 meses ÷ Taxa Desejada).")
 st.markdown("---")
-st.subheader("📊 Performance Acumulada vs Índices (10 Anos)")
-ticker_sel = st.selectbox("Selecione o ativo para comparação detalhada:", list(acoes_config.keys()), format_func=lambda x: x[:5])
 
-if ticker_sel in dados_mercado:
-    d = dados_mercado[ticker_sel]
-    hover_fmt = "Rendimento: %{y:.2f}%<extra></extra>"
-    
-    fig = go.Figure()
+# --- Barra Lateral (Configurações) ---
+st.sidebar.header("⚙️ Configurações")
+st.sidebar.write("Insira os códigos das ações (adicione .SA para ativos brasileiros):")
 
-    # Linha do Ativo Selecionado
-    fig.add_trace(go.Scatter(x=d['datas'], y=d['hist_norm'], name=f"{ticker_sel[:5]}", 
-                             hovertemplate=hover_fmt, line=dict(color=acoes_config[ticker_sel]['cor'], width=3.5)))
-    
-    # Linha DIVO11
-    if 'DIVO11.SA' in dados_mercado:
-        fig.add_trace(go.Scatter(x=dados_mercado['DIVO11.SA']['datas'], y=dados_mercado['DIVO11.SA']['hist_norm'], 
-                                 name='DIVO11 (Dividendos)', hovertemplate=hover_fmt, line=dict(color='#f1c40f', width=2, dash='dash')))
-    
-    # Linha BOVA11
-    if 'BOVA11.SA' in dados_mercado:
-        fig.add_trace(go.Scatter(x=dados_mercado['BOVA11.SA']['datas'], y=dados_mercado['BOVA11.SA']['hist_norm'], 
-                                 name='BOVA11 (Ibovespa)', hovertemplate=hover_fmt, line=dict(color='#95a5a6', width=2, dash='dot')))
+# Os campos agora usam 'key' (ligados diretamente à memória) e acionam o salvamento ao mudar
+st.sidebar.text_input("Ação 1", key="acao1", on_change=salvar_configuracoes)
+st.sidebar.text_input("Ação 2", key="acao2", on_change=salvar_configuracoes)
+st.sidebar.text_input("Ação 3", key="acao3", on_change=salvar_configuracoes)
+st.sidebar.text_input("Ação 4", key="acao4", on_change=salvar_configuracoes)
 
-    fig.update_layout(
-        template="plotly_white", 
-        hovermode="x unified", 
-        height=500,
-        yaxis=dict(ticksuffix="%"),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-    )
-    st.plotly_chart(fig, use_container_width=True)
+st.sidebar.number_input("Taxa de Retorno Desejada (%)", step=0.5, key="taxa_desejada", on_change=salvar_configuracoes)
+
+# Converte a taxa para decimal para o cálculo matemático
+taxa_calc = st.session_state.taxa_desejada / 100
+
+if st.sidebar.button("🔄 Atualizar Cotações Agora"):
+    st.rerun()
+
+acoes = [
+    st.session_state.acao1.upper(), 
+    st.session_state.acao2.upper(), 
+    st.session_state.acao3.upper(), 
+    st.session_state.acao4.upper()
+]
+
+# --- Função para calcular Dividendos dos últimos 12 meses ---
+@st.cache_data(ttl=3600)
+def obter_dividendos_12m(ticker):
+    try:
+        acao = yf.Ticker(ticker)
+        dividendos = acao.dividends
+        if dividendos.empty:
+            return 0.0
+        
+        um_ano_atras = pd.Timestamp.today(tz='UTC') - pd.DateOffset(years=1)
+        dividendos.index = pd.to_datetime(dividendos.index, utc=True)
+        divs_recentes = dividendos[dividendos.index >= um_ano_atras]
+        
+        return divs_recentes.sum()
+    except:
+        return 0.0
+
+# --- Exibição dos Dados ---
+colunas = st.columns(4)
+
+for i, ticker in enumerate(acoes):
+    if not ticker.strip():
+        continue
+        
+    with colunas[i]:
+        try:
+            acao_obj = yf.Ticker(ticker)
+            hist = acao_obj.history(period="1d")
+            
+            if hist.empty:
+                st.warning(f"{ticker}: Sem dados.")
+                continue
+                
+            preco_atual = hist['Close'].iloc[-1]
+            div_12m = obter_dividendos_12m(ticker)
+            
+            # Cálculo do Preço Teto
+            preco_teto = div_12m / taxa_calc if taxa_calc > 0 else 0
+            
+            # Cálculo da Margem de Segurança
+            if preco_teto > 0:
+                margem = ((preco_teto / preco_atual) - 1) * 100
+            else:
+                margem = 0.0
+                
+            # Formatação Visual
+            st.subheader(ticker)
+            st.metric("Preço Atual", f"R$ {preco_atual:.2f}")
+            st.metric(f"Preço Teto ({st.session_state.taxa_desejada:.1f}%)", f"R$ {preco_teto:.2f}")
+            
+            cor = "normal" if margem >= 0 else "inverse"
+            st.metric("Margem de Segurança", f"{margem:.2f}%", delta=f"{margem:.2f}%", delta_color=cor)
+            
+            st.caption(f"Dividendos (12m): R$ {div_12m:.2f}")
+            
+        except Exception as e:
+            st.error(f"Erro ao carregar {ticker}")
+
+st.markdown("---")
+st.caption("Nota: Os dados são extraídos do Yahoo Finance. O mercado possui um pequeno delay inerente à plataforma de origem.")
