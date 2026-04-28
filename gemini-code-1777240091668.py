@@ -65,7 +65,7 @@ if yield_alvo != saved_yield:
     salvar_configuracoes(st.session_state.user_settings)
 
 st.sidebar.markdown("---")
-st.sidebar.header("🔮 Projeções Futuras (2026)")
+st.sidebar.header("📈 Projeções Futuras (2026)")
 
 projeções = {}
 for ticker, conf in acoes_config.items():
