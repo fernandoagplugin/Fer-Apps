@@ -43,40 +43,36 @@ st.markdown("""
 st.markdown('<div class="main-title">Preço Teto Ações</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitle">por Fer</div>', unsafe_allow_html=True)
 
-# 2. Configuração de Ativos (Links RAW do seu GitHub)
+# 2. Configuração de Ativos (Links RAW do GitHub)
 base_raw = "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/"
 
 acoes_config = {
-    'AXIA6.SA': {
-        'nome': 'Axia Energia', 'cor': '#3bb54a', 'payout_base': 1.20, 'lpa_base': 0.65,
-        'logo': f"{base_raw}AXIA.png"
-    },
-    'CPLE3.SA': {
-        'nome': 'Copel', 'cor': '#2d3e50', 'payout_base': 0.55, 'lpa_base': 0.85,
-        'logo': f"{base_raw}COPEL.png"
-    },
-    'CXSE3.SA': {
-        'nome': 'Caixa Seguridade', 'cor': '#005ca9', 'payout_base': 0.90, 'lpa_base': 1.40,
-        'logo': f"{base_raw}Caixa.png"
-    },
-    'ITSA4.SA': {
-        'nome': 'Itaúsa', 'cor': '#ec7000', 'payout_base': 0.45, 'lpa_base': 1.55,
-        'logo': f"{base_raw}Itausa.png"
-    }
+    'AXIA6.SA': {'nome': 'Axia Energia', 'cor': '#3bb54a', 'payout_base': 1.20, 'lpa_base': 0.65, 'logo': f"{base_raw}AXIA.png"},
+    'CPLE3.SA': {'nome': 'Copel', 'cor': '#2d3e50', 'payout_base': 0.55, 'lpa_base': 0.85, 'logo': f"{base_raw}COPEL.png"},
+    'CXSE3.SA': {'nome': 'Caixa Seguridade', 'cor': '#005ca9', 'payout_base': 0.90, 'lpa_base': 1.40, 'logo': f"{base_raw}Caixa.png"},
+    'ITSA4.SA': {'nome': 'Itaúsa', 'cor': '#ec7000', 'payout_base': 0.45, 'lpa_base': 1.55, 'logo': f"{base_raw}Itausa.png"}
 }
 
 # 3. Sidebar - Parâmetros e Projeções
 st.sidebar.header("⚙️ Parâmetros de Mercado")
 
-if st.sidebar.button("🔄 Atualizar Preços Agora"):
-    st.cache_data.clear()
+# --- CORREÇÃO DO SLIDER DE YIELD (Vínculo direto com session_state via key) ---
+if 'yield_alvo_slider' not in st.session_state:
+    # Inicializa o valor da memória a partir das configurações salvas
+    val_inicial = int(st.session_state.user_settings.get('yield_alvo', 0.06) * 100)
+    st.session_state.yield_alvo_slider = val_inicial
 
-saved_yield = st.session_state.user_settings.get('yield_alvo', 0.06)
-yield_alvo = st.sidebar.slider("Yield Mínimo Desejado (%)", 6, 12, int(saved_yield*100)) / 100
+# O slider gerencia o valor na 'yield_alvo_slider' automaticamente
+yield_valor = st.sidebar.slider("Yield Mínimo Desejado (%)", 6, 12, key='yield_alvo_slider')
+yield_alvo = yield_valor / 100
 
-if yield_alvo != saved_yield:
+# Sincronização e salvamento permanente
+if yield_alvo != st.session_state.user_settings.get('yield_alvo'):
     st.session_state.user_settings['yield_alvo'] = yield_alvo
     salvar_configuracoes(st.session_state.user_settings)
+
+if st.sidebar.button("🔄 Atualizar Preços Agora"):
+    st.cache_data.clear()
 
 st.sidebar.markdown("---")
 st.sidebar.header("📈 Projeções Futuras (2026)")
@@ -97,7 +93,7 @@ for ticker, conf in acoes_config.items():
             
         projeções[ticker] = {'lpa': lpa_p, 'payout': payout_p}
 
-# 4. Busca de Dados (Yahoo Finance)
+# 4. Busca de Dados
 @st.cache_data(ttl=60)
 def buscar_dados(tickers):
     todos = tickers + ['BOVA11.SA', 'DIVO11.SA']
@@ -124,7 +120,7 @@ for i, (ticker, conf) in enumerate(acoes_config.items()):
         with cols[i]:
             d = dados_mercado[ticker]
             dpa_proj = projeções[ticker]['lpa'] * projeções[ticker]['payout']
-            teto_proj = dpa_proj / yield_alvo
+            teto_proj = dpa_proj / yield_alvo if yield_alvo > 0 else 0
             margem = ((teto_proj - d['preco']) / teto_proj) * 100 if teto_proj > 0 else -100
             cor_m = "#28a745" if margem > 0 else "#dc3545"
 
@@ -142,36 +138,30 @@ for i, (ticker, conf) in enumerate(acoes_config.items()):
                 </div>
             """, unsafe_allow_html=True)
 
-# 6. Gráfico Comparativo de Rendimento
+# 6. Gráfico Comparativo
 st.markdown("---")
 st.subheader("📊 Performance Acumulada vs Índices (10 Anos)")
-ticker_sel = st.selectbox("Selecione o ativo para comparação detalhada:", list(acoes_config.keys()), format_func=lambda x: x[:5])
+ticker_sel = st.selectbox("Selecione o ativo para comparação:", list(acoes_config.keys()), format_func=lambda x: x[:5])
 
 if ticker_sel in dados_mercado:
     d = dados_mercado[ticker_sel]
     hover_fmt = "Rendimento: %{y:.2f}%<extra></extra>"
-    
     fig = go.Figure()
 
-    # Linha do Ativo Selecionado
+    # Linha da Ação
     fig.add_trace(go.Scatter(x=d['datas'], y=d['hist_norm'], name=f"{ticker_sel[:5]}", 
                              hovertemplate=hover_fmt, line=dict(color=acoes_config[ticker_sel]['cor'], width=3.5)))
     
     # Linha DIVO11
     if 'DIVO11.SA' in dados_mercado:
         fig.add_trace(go.Scatter(x=dados_mercado['DIVO11.SA']['datas'], y=dados_mercado['DIVO11.SA']['hist_norm'], 
-                                 name='DIVO11 (Dividendos)', hovertemplate=hover_fmt, line=dict(color='#f1c40f', width=2, dash='dash')))
+                                 name='DIVO11', hovertemplate=hover_fmt, line=dict(color='#f1c40f', width=2, dash='dash')))
     
     # Linha BOVA11
     if 'BOVA11.SA' in dados_mercado:
         fig.add_trace(go.Scatter(x=dados_mercado['BOVA11.SA']['datas'], y=dados_mercado['BOVA11.SA']['hist_norm'], 
-                                 name='BOVA11 (Ibovespa)', hovertemplate=hover_fmt, line=dict(color='#95a5a6', width=2, dash='dot')))
+                                 name='BOVA11', hovertemplate=hover_fmt, line=dict(color='#95a5a6', width=2, dash='dot')))
 
-    fig.update_layout(
-        template="plotly_white", 
-        hovermode="x unified", 
-        height=500,
-        yaxis=dict(ticksuffix="%"),
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
-    )
+    fig.update_layout(template="plotly_white", hovermode="x unified", height=500, yaxis=dict(ticksuffix="%"),
+                      legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
     st.plotly_chart(fig, use_container_width=True)
