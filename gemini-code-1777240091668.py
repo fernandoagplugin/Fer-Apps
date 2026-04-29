@@ -53,9 +53,9 @@ def buscar_dados(tickers):
     for t in tickers + ['BOVA11.SA', 'DIVO11.SA']:
         try:
             tk = yf.Ticker(t)
-            # Tenta pegar consenso de várias chaves possíveis do Yahoo
             info = tk.info
-            lpa_m = info.get('forwardEps') or info.get('trailingEps') or info.get('defaultKeyStatistics', {}).get('forwardEps')
+            # Busca consenso de mercado
+            lpa_m = info.get('forwardEps') or info.get('trailingEps')
             
             hist = tk.history(period="1y")
             if not hist.empty:
@@ -80,11 +80,22 @@ if 'yield_alvo_slider' not in st.session_state:
 y_val = st.sidebar.slider("Yield Mínimo (%)", 6.0, 12.0, step=0.5, key='yield_alvo_slider')
 yield_alvo = y_val / 100
 
+# Salva yield se mudar
 if yield_alvo != st.session_state.user_settings.get('yield_alvo'):
     st.session_state.user_settings['yield_alvo'] = yield_alvo
     salvar_configuracoes(st.session_state.user_settings)
 
+# O BOTÃO UPDATE: Limpa o cache e as edições manuais para forçar o "deslizamento" dos valores de mercado
 if st.sidebar.button("Update"):
+    # Limpa as chaves de LPA e Payout do session_state e do arquivo para resetar ao consenso
+    chaves_para_remover = []
+    for ticker in acoes_config:
+        chaves_para_remover.extend([f'lpa_{ticker}', f'payout_{ticker}'])
+    
+    for chave in chaves_para_remover:
+        st.session_state.user_settings.pop(chave, None)
+    
+    salvar_configuracoes(st.session_state.user_settings)
     st.cache_data.clear()
     st.rerun()
 
@@ -94,26 +105,32 @@ st.sidebar.header("📈 Projeções 2026")
 projeções = {}
 for ticker, conf in acoes_config.items():
     with st.sidebar.expander(f"Ajustar {ticker[:5]}"):
-        # Recupera valor: 1. Do Cache salvo | 2. Do Mercado | 3. Do Padrão Fixo
-        v_lpa_cached = st.session_state.user_settings.get(f'lpa_{ticker}')
-        if v_lpa_cached is None:
-            v_lpa_cached = dados_mercado.get(ticker, {}).get('lpa_consenso') or conf['lpa_base']
         
-        v_payout_cached = st.session_state.user_settings.get(f'payout_{ticker}', conf['payout_base'])
+        # LÓGICA DE SINCRONIZAÇÃO:
+        # Se existir no cache (editado pelo usuário), usa. 
+        # Se NÃO existir (pós-Update), busca Consenso. 
+        # Se Consenso falhar, usa o Padrão do código.
         
-        # Inputs
-        lpa_final = st.number_input(f"LPA {ticker[:5]}", value=float(v_lpa_cached), step=0.01, key=f"n_{ticker}")
-        payout_final = st.slider(f"Payout % {ticker[:5]}", 10, 200, int(v_payout_cached * 100), key=f"s_{ticker}") / 100
+        v_lpa_original = st.session_state.user_settings.get(f'lpa_{ticker}')
+        if v_lpa_original is None:
+            cons = dados_mercado.get(ticker, {}).get('lpa_consenso')
+            v_lpa_original = cons if cons and cons > 0 else conf['lpa_base']
         
-        # Salva se mudar
-        if lpa_final != v_lpa_cached or payout_final != v_payout_cached:
-            st.session_state.user_settings[f'lpa_{ticker}'] = lpa_final
-            st.session_state.user_settings[f'payout_{ticker}'] = payout_final
+        v_payout_original = st.session_state.user_settings.get(f'payout_{ticker}', conf['payout_base'])
+        
+        # Renderiza os inputs com os valores calculados acima
+        lpa_input = st.number_input(f"LPA {ticker[:5]}", value=float(v_lpa_original), step=0.01, key=f"n_{ticker}")
+        payout_input = st.slider(f"Payout % {ticker[:5]}", 10, 200, int(v_payout_original * 100), key=f"s_{ticker}") / 100
+        
+        # Se o usuário interagir e mudar o valor, salvamos no cache
+        if lpa_input != v_lpa_original or payout_input != v_payout_original:
+            st.session_state.user_settings[f'lpa_{ticker}'] = lpa_input
+            st.session_state.user_settings[f'payout_{ticker}'] = payout_input
             salvar_configuracoes(st.session_state.user_settings)
             
-        projeções[ticker] = {'lpa': lpa_final, 'payout': payout_final}
+        projeções[ticker] = {'lpa': lpa_input, 'payout': payout_input}
 
-# 5. Cards
+# 5. Cards (Calculados com base nos inputs acima)
 cols = st.columns(4)
 for i, (ticker, conf) in enumerate(acoes_config.items()):
     if ticker in dados_mercado:
