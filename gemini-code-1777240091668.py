@@ -51,7 +51,7 @@ acoes_config = {
     'ITSA4.SA': {'nome': 'Itaúsa', 'cor': '#ec7000', 'payout_base': 0.45, 'lpa_base': 1.55, 'logo': f"{base_raw}Itausa.png"}
 }
 
-# 3. Busca de Dados Avançada (Preço + Consenso)
+# 3. Busca de Dados Avançada
 @st.cache_data(ttl=300)
 def buscar_dados_completos(tickers):
     todos = tickers + ['BOVA11.SA', 'DIVO11.SA']
@@ -59,25 +59,28 @@ def buscar_dados_completos(tickers):
     for t in todos:
         try:
             tk = yf.Ticker(t)
-            hist = tk.history(period="10y")
+            hist = tk.history(period="1y") # Reduzi para 1 ano para carregar mais rápido no update
             if hist.empty: continue
             
+            # Tenta pegar o consenso de mercado (Forward EPS)
             info = tk.info
-            # Tenta pegar o LPA Estimado (EPS Forward) do consenso das casas de análise
-            lpa_consenso = info.get('forwardEps') or info.get('trailingEps')
+            lpa_mercado = info.get('forwardEps') or info.get('trailingEps')
             
             dados[t] = {
                 'preco': hist['Close'].iloc[-1],
                 'hist_norm': (hist['Close'] / hist['Close'].iloc[0]) * 100,
                 'datas': hist.index,
-                'lpa_consenso': lpa_consenso
+                'lpa_consenso': lpa_mercado
             }
         except: continue
     return dados
 
+dados_mercado = buscar_dados_completos(list(acoes_config.keys()))
+
 # 4. Sidebar - Parâmetros
 st.sidebar.header("⚙️ Parâmetros de Mercado")
 
+# Slider de Yield (0.5 em 0.5)
 if 'yield_alvo_slider' not in st.session_state:
     st.session_state.yield_alvo_slider = float(st.session_state.user_settings.get('yield_alvo', 0.06) * 100)
 
@@ -88,36 +91,42 @@ if yield_alvo != st.session_state.user_settings.get('yield_alvo'):
     st.session_state.user_settings['yield_alvo'] = yield_alvo
     salvar_configuracoes(st.session_state.user_settings)
 
-# Botão Dual: Preço e Consenso
-if st.sidebar.button("🔄 Atualizar Dados (Preço e Consenso)"):
+# BOTÃO UPDATE (Limpa overrides manuais zerados e força busca de mercado)
+if st.sidebar.button("🔄 Update"):
+    # Limpa o cache do session_state para LPA/Payout se eles estiverem zerados ou quisermos resetar
+    for ticker in acoes_config:
+        if st.session_state.user_settings.get(f'lpa_{ticker}', 0) == 0:
+            st.session_state.user_settings.pop(f'lpa_{ticker}', None)
+            st.session_state.user_settings.pop(f'payout_{ticker}', None)
+    
     st.cache_data.clear()
     st.rerun()
 
 st.sidebar.markdown("---")
 st.sidebar.header("📈 Projeções Futuras (2026)")
 
-# Carrega os dados para popular os inputs
-dados_mercado = buscar_dados_completos(list(acoes_config.keys()))
-
 projeções = {}
 for ticker, conf in acoes_config.items():
     with st.sidebar.expander(f"Ajustar {ticker[:5]}"):
-        # Lógica de prioridade: 1. Editado pelo usuário | 2. Consenso Yahoo | 3. Base do App
-        lpa_sugerido = dados_mercado.get(ticker, {}).get('lpa_consenso') or conf['lpa_base']
+        # Prioridade: 1. Valor salvo no JSON | 2. Consenso Yahoo Finance | 3. Valor Base Manual
+        consenso = dados_mercado.get(ticker, {}).get('lpa_consenso')
+        default_lpa = st.session_state.user_settings.get(f'lpa_{ticker}')
         
-        s_lpa = st.session_state.user_settings.get(f'lpa_{ticker}', lpa_sugerido)
-        s_payout = st.session_state.user_settings.get(f'payout_{ticker}', conf['payout_base'])
+        if default_lpa is None: # Se não houver nada salvo, usa o consenso ou a base
+            default_lpa = consenso if consenso else conf['lpa_base']
+            
+        default_payout = st.session_state.user_settings.get(f'payout_{ticker}', conf['payout_base'])
         
-        lpa_p = st.number_input(f"LPA ({ticker[:5]})", value=float(s_lpa), step=0.01, key=f"in_lpa_{ticker}")
-        payout_p = st.slider(f"Payout % ({ticker[:5]})", 10, 200, int(s_payout*100), key=f"in_p_{ticker}") / 100
+        lpa_input = st.number_input(f"LPA ({ticker[:5]})", value=float(default_lpa), step=0.01, key=f"lpa_in_{ticker}")
+        payout_input = st.slider(f"Payout % ({ticker[:5]})", 10, 200, int(default_payout*100), key=f"p_in_{ticker}") / 100
         
-        # Salva se houver edição manual
-        if lpa_p != s_lpa or (payout_p != s_payout):
-            st.session_state.user_settings[f'lpa_{ticker}'] = lpa_p
-            st.session_state.user_settings[f'payout_{ticker}'] = payout_p
+        # Salva apenas se o usuário de fato mexer no componente
+        if lpa_input != default_lpa or (payout_input != default_payout):
+            st.session_state.user_settings[f'lpa_{ticker}'] = lpa_input
+            st.session_state.user_settings[f'payout_{ticker}'] = payout_input
             salvar_configuracoes(st.session_state.user_settings)
             
-        projeções[ticker] = {'lpa': lpa_p, 'payout': payout_p}
+        projeções[ticker] = {'lpa': lpa_input, 'payout': payout_input}
 
 # 5. Interface de Cards
 cols = st.columns(4)
@@ -144,18 +153,15 @@ for i, (ticker, conf) in enumerate(acoes_config.items()):
                 </div>
             """, unsafe_allow_html=True)
 
-# 6. Gráfico (Mantido)
+# 6. Gráfico (Simplificado para carregar mais rápido no Update)
 st.markdown("---")
-st.subheader("📊 Performance Acumulada vs Índices (10 Anos)")
-ticker_sel = st.selectbox("Selecione o ativo para comparação:", list(acoes_config.keys()), format_func=lambda x: x[:5])
+st.subheader("📊 Performance vs Índices")
+ticker_sel = st.selectbox("Selecione para comparar:", list(acoes_config.keys()), format_func=lambda x: x[:5])
 if ticker_sel in dados_mercado:
     d = dados_mercado[ticker_sel]
-    hover_fmt = "Rendimento: %{y:.2f}%<extra></extra>"
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=d['datas'], y=d['hist_norm'], name=f"{ticker_sel[:5]}", hovertemplate=hover_fmt, line=dict(color=acoes_config[ticker_sel]['cor'], width=3.5)))
-    if 'DIVO11.SA' in dados_mercado:
-        fig.add_trace(go.Scatter(x=dados_mercado['DIVO11.SA']['datas'], y=dados_mercado['DIVO11.SA']['hist_norm'], name='DIVO11', hovertemplate=hover_fmt, line=dict(color='#f1c40f', width=2, dash='dash')))
+    fig.add_trace(go.Scatter(x=d['datas'], y=d['hist_norm'], name=f"{ticker_sel[:5]}", line=dict(color=acoes_config[ticker_sel]['cor'], width=3)))
     if 'BOVA11.SA' in dados_mercado:
-        fig.add_trace(go.Scatter(x=dados_mercado['BOVA11.SA']['datas'], y=dados_mercado['BOVA11.SA']['hist_norm'], name='BOVA11', hovertemplate=hover_fmt, line=dict(color='#95a5a6', width=2, dash='dot')))
-    fig.update_layout(template="plotly_white", hovermode="x unified", height=500, yaxis=dict(ticksuffix="%"), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1))
+        fig.add_trace(go.Scatter(x=dados_mercado['BOVA11.SA']['datas'], y=dados_mercado['BOVA11.SA']['hist_norm'], name='BOVA11', line=dict(color='#95a5a6', dash='dot')))
+    fig.update_layout(template="plotly_white", height=400, margin=dict(l=20, r=20, t=20, b=20))
     st.plotly_chart(fig, use_container_width=True)
