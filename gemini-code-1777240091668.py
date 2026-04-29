@@ -4,118 +4,155 @@ import pandas as pd
 import plotly.graph_objects as go
 
 # 1. Configurações da Página
-st.set_page_config(page_title="Preço Teto Automático", layout="wide")
+st.set_page_config(page_title="EquityDash | Projeções", layout="wide", initial_sidebar_state="expanded")
 
-# --- ESTILOS VISUAIS ---
+# --- CSS AVANÇADO (BACKFRONT) ---
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;700&display=swap');
-    .main-title { font-family: 'Roboto', sans-serif; font-size: 42px; font-weight: 700; text-align: center; color: #1E1E1E; margin-bottom: 30px; }
-    .card { padding: 20px; border-radius: 15px; background-color: white; box-shadow: 0 4px 12px rgba(0,0,0,0.08); text-align: center; height: 100%; border: 1px solid #eee; display: flex; flex-direction: column; align-items: center; }
-    .logo-container { height: 70px; display: flex; align-items: center; justify-content: center; margin-bottom: 10px; }
-    .logo-img { max-width: 100px; max-height: 60px; object-fit: contain; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+    
+    html, body, [class*="css"] { font-family: 'Inter', sans-serif; background-color: #f8f9fa; }
+    
+    /* Header Estilizado */
+    .main-header { 
+        background: linear-gradient(90deg, #1e3a8a 0%, #3b82f6 100%);
+        padding: 20px;
+        border-radius: 15px;
+        color: white;
+        text-align: center;
+        margin-bottom: 30px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+    
+    /* Cards Profissionais */
+    .stMetric { background-color: white; padding: 15px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+    
+    .card-equity {
+        background: white;
+        padding: 25px;
+        border-radius: 20px;
+        border: 1px solid #eef2f6;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.02);
+        transition: transform 0.3s ease;
+        text-align: center;
+    }
+    .card-equity:hover { transform: translateY(-5px); box-shadow: 0 15px 35px rgba(0,0,0,0.05); }
+    
+    /* Tags de Margem */
+    .badge-positive { background-color: #dcfce7; color: #15803d; padding: 4px 12px; border-radius: 20px; font-weight: 700; font-size: 14px; }
+    .badge-negative { background-color: #fee2e2; color: #b91c1c; padding: 4px 12px; border-radius: 20px; font-weight: 700; font-size: 14px; }
+    
+    .logo-img { height: 50px; object-fit: contain; margin-bottom: 15px; }
+    .price-text { font-size: 24px; font-weight: 700; color: #1e293b; margin: 10px 0; }
+    .label-text { color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; }
     </style>
     """, unsafe_allow_html=True)
 
-st.markdown('<div class="main-title">Preço Teto Ações</div>', unsafe_allow_html=True)
+# Top Bar
+st.markdown('<div class="main-header"><h1>EquityDash 2026</h1><p>Inteligência em Dividendos & Preço Teto</p></div>', unsafe_allow_html=True)
 
-# 2. Configuração de Ativos (Dados Base de Segurança)
+# 2. Configuração de Ativos
 base_raw = "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/"
 acoes_config = {
-    'AXIA6.SA': {'nome': 'Axia Energia', 'cor': '#3bb54a', 'payout': 1.0, 'lpa_fallback': 0.65, 'logo': f"{base_raw}AXIA.png"},
-    'CPLE3.SA': {'nome': 'Copel', 'cor': '#2d3e50', 'payout': 0.5, 'lpa_fallback': 0.85, 'logo': f"{base_raw}COPEL.png"},
-    'CXSE3.SA': {'nome': 'Caixa Seguridade', 'cor': '#005ca9', 'payout': 0.9, 'lpa_fallback': 1.40, 'logo': f"{base_raw}Caixa.png"},
-    'ITSA4.SA': {'nome': 'Itaúsa', 'cor': '#ec7000', 'payout': 0.4, 'lpa_fallback': 1.55, 'logo': f"{base_raw}Itausa.png"}
+    'AXIA6.SA': {'nome': 'Axia Energia', 'cor': '#3bb54a', 'payout': 1.0, 'fallback': 0.65, 'logo': f"{base_raw}AXIA.png"},
+    'CPLE3.SA': {'nome': 'Copel', 'cor': '#2d3e50', 'payout': 0.5, 'fallback': 0.85, 'logo': f"{base_raw}COPEL.png"},
+    'CXSE3.SA': {'nome': 'Caixa Seguridade', 'cor': '#005ca9', 'payout': 0.9, 'fallback': 1.40, 'logo': f"{base_raw}Caixa.png"},
+    'ITSA4.SA': {'nome': 'Itaúsa', 'cor': '#ec7000', 'payout': 0.4, 'fallback': 1.55, 'logo': f"{base_raw}Itausa.png"}
 }
 
-# 3. Busca de Dados (Preço, Índices e Consenso)
-@st.cache_data(ttl=300)
-def buscar_dados_mercado(tickers):
-    todos = tickers + ['BOVA11.SA', 'DIVO11.SA']
-    dados = {}
-    for t in todos:
-        try:
-            tk = yf.Ticker(t)
-            # Busca histórico para gráfico e preço atual
-            hist = tk.history(period="10y")
-            if hist.empty: continue
-            
-            # Busca LPA projetado (Consenso)
-            info = tk.info
-            lpa_proj = info.get('forwardEps') or info.get('trailingEps')
-            
-            dados[t] = {
-                'preco': hist['Close'].iloc[-1],
-                'lpa_mercado': lpa_proj,
-                'datas': hist.index,
-                'hist_norm': (hist['Close'] / hist['Close'].iloc[0]) * 100
-            }
-        except: continue
-    return dados
-
-dados_mercado = buscar_dados_mercado(list(acoes_config.keys()))
-
-# 4. Sidebar - Parâmetros Diretos
-st.sidebar.header("⚙️ Configurações")
-
-# Yield agora atualiza instantaneamente (sem precisar de Update para o cálculo)
-yield_valor = st.sidebar.slider("Yield Mínimo Desejado (%)", 6.0, 12.0, value=6.0, step=0.5, format="%.1f")
+# 3. Sidebar Clean
+st.sidebar.image("https://cdn-icons-png.flaticon.com/512/3135/3135706.png", width=80) # Ícone de Usuário/Finanças
+st.sidebar.title("Configurações")
+yield_valor = st.sidebar.select_slider("Objetivo de Yield Anual", options=[6.0, 6.5, 7.0, 7.5, 8.0, 8.5, 9.0, 10.0, 11.0, 12.0], value=6.0)
 yield_alvo = yield_valor / 100
 
-if st.sidebar.button("🔄 Update (Preços e Lucros)"):
+st.sidebar.markdown("---")
+if st.sidebar.button("🔄 Sincronizar Mercado", use_container_width=True):
     st.cache_data.clear()
     st.rerun()
 
-st.sidebar.info("As projeções de Lucro (LPA) e Payout são obtidas automaticamente via Consenso de Mercado e políticas vigentes das empresas.")
+# 4. Data Engine
+@st.cache_data(ttl=600)
+def fetch_data(tickers):
+    data = {}
+    for t in tickers + ['BOVA11.SA', 'DIVO11.SA']:
+        try:
+            tk = yf.Ticker(t)
+            hist = tk.history(period="5y")
+            if hist.empty: continue
+            data[t] = {
+                'price': hist['Close'].iloc[-1],
+                'lpa': tk.info.get('forwardEps') or tk.info.get('trailingEps'),
+                'hist': hist,
+                'change': ((hist['Close'].iloc[-1] / hist['Close'].iloc[-2]) - 1) * 100
+            }
+        except: continue
+    return data
 
-# 5. Interface de Cards
+market_data = fetch_data(list(acoes_config.keys()))
+
+# 5. Grid de Cards
 cols = st.columns(4)
 for i, (ticker, conf) in enumerate(acoes_config.items()):
-    if ticker in dados_mercado:
-        d = dados_mercado[ticker]
+    if ticker in market_data:
+        d = market_data[ticker]
+        lpa = d['lpa'] if d['lpa'] and d['lpa'] > 0 else conf['fallback']
+        dpa = lpa * conf['payout']
+        teto = dpa / yield_alvo
+        margem = ((teto - d['price']) / teto) * 100
         
-        # Lógica: Usa Consenso de Mercado. Se falhar, usa o valor de segurança (fallback).
-        lpa_usado = d['lpa_mercado'] if d['lpa_mercado'] and d['lpa_mercado'] > 0 else conf['lpa_fallback']
-        payout_usado = conf['payout']
-        
-        dpa = lpa_usado * payout_usado
-        teto = dpa / yield_alvo if yield_alvo > 0 else 0
-        margem = ((teto - d['preco']) / teto) * 100 if teto > 0 else -100
-        cor = "#28a745" if margem > 0 else "#dc3545"
-        
+        status_class = "badge-positive" if margem > 0 else "badge-negative"
+        status_text = "OPORTUNIDADE" if margem > 0 else "ACIMA DO TETO"
+
         with cols[i]:
             st.markdown(f"""
-                <div class="card" style="border-top: 5px solid {conf['cor']};">
-                    <div class="logo-container"><img src="{conf['logo']}" class="logo-img"></div>
-                    <b>{ticker[:5]}</b><br>
-                    <p style="margin:5px 0; font-size:14px;">Preço Atual: <b>R$ {d['preco']:.2f}</b></p>
-                    <p style="margin:5px 0; font-size:14px;">LPA Est.: <b>R$ {lpa_usado:.2f}</b></p>
-                    <p style="margin:5px 0; font-size:14px;">Div. Projetado: <b>R$ {dpa:.2f}</b></p>
-                    <p style="font-size:18px; color:{cor}; margin:10px 0;"><b>Teto: R$ {teto:.2f}</b></p>
-                    <div style="background:{cor}; color:white; padding:5px; border-radius:5px; width:100%;"><b>{margem:.1f}%</b></div>
+                <div class="card-equity">
+                    <img src="{conf['logo']}" class="logo-img">
+                    <div class="label-text">{ticker}</div>
+                    <div class="price-text">R$ {d['price']:.2f}</div>
+                    <div style="margin-bottom: 20px;">
+                        <span class="{status_class}">{status_text}: {margem:.1f}%</span>
+                    </div>
+                    <hr style="border: 0; border-top: 1px solid #eee;">
+                    <div style="display: flex; justify-content: space-between; margin-top: 10px;">
+                        <div style="text-align: left;">
+                            <div class="label-text">Preço Teto</div>
+                            <div style="font-weight: 700; color: {conf['cor']};">R$ {teto:.2f}</div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div class="label-text">Dividendo Est.</div>
+                            <div style="font-weight: 700; color: #1e293b;">R$ {dpa:.2f}</div>
+                        </div>
+                    </div>
                 </div>
             """, unsafe_allow_html=True)
 
-# 6. Gráfico Comparativo
-st.markdown("---")
-st.subheader("📊 Performance Acumulada vs Índices (10 Anos)")
-ticker_sel = st.selectbox("Selecione para comparar:", list(acoes_config.keys()), format_func=lambda x: x[:5])
-
-if ticker_sel in dados_mercado:
-    d = dados_mercado[ticker_sel]
-    fig = go.Figure()
-
-    fig.add_trace(go.Scatter(x=d['datas'], y=d['hist_norm'], name=f"{ticker_sel[:5]}", 
-                             line=dict(color=acoes_config[ticker_sel]['cor'], width=3)))
+# 6. Gráfico de Performance Profissional
+st.markdown("<br>", unsafe_allow_html=True)
+with st.container():
+    st.markdown('<div style="background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.02);">', unsafe_allow_html=True)
+    st.subheader("Análise de Performance Relativa")
+    target = st.selectbox("Ativo Principal", list(acoes_config.keys()), index=3)
     
-    if 'DIVO11.SA' in dados_mercado:
-        fig.add_trace(go.Scatter(x=dados_mercado['DIVO11.SA']['datas'], y=dados_mercado['DIVO11.SA']['hist_norm'], 
-                                 name='DIVO11', line=dict(color='#f1c40f', width=2, dash='dash')))
-    
-    if 'BOVA11.SA' in dados_mercado:
-        fig.add_trace(go.Scatter(x=dados_mercado['BOVA11.SA']['datas'], y=dados_mercado['BOVA11.SA']['hist_norm'], 
-                                 name='BOVA11', line=dict(color='#95a5a6', width=2, dash='dot')))
+    if target in market_data:
+        fig = go.Figure()
+        d_target = market_data[target]['hist']
+        norm_target = (d_target['Close'] / d_target['Close'].iloc[0]) * 100
+        
+        fig.add_trace(go.Scatter(x=d_target.index, y=norm_target, name=target, line=dict(color=acoes_config[target]['cor'], width=3)))
+        
+        for idx in ['BOVA11.SA', 'DIVO11.SA']:
+            if idx in market_data:
+                d_idx = market_data[idx]['hist']
+                norm_idx = (d_idx['Close'] / d_idx['Close'].iloc[0]) * 100
+                fig.add_trace(go.Scatter(x=d_idx.index, y=norm_idx, name=idx.split('.')[0], line=dict(width=1.5, dash='dot')))
 
-    fig.update_layout(template="plotly_white", hovermode="x unified", height=450, margin=dict(l=0, r=0, t=30, b=0),
-                      yaxis=dict(ticksuffix="%"), legend=dict(orientation="h", y=1.1, x=1, xanchor='right'))
-    st.plotly_chart(fig, use_container_width=True)
+        fig.update_layout(
+            hovermode="x unified",
+            plot_bgcolor='white',
+            paper_bgcolor='white',
+            margin=dict(l=0, r=0, t=20, b=0),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
