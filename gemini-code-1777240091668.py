@@ -56,17 +56,24 @@ acoes_config = {
 # 3. Sidebar - Parâmetros e Projeções
 st.sidebar.header("⚙️ Parâmetros de Mercado")
 
-# --- CORREÇÃO DO SLIDER DE YIELD (Vínculo direto com session_state via key) ---
+# --- AJUSTE DE YIELD (0.5 em 0.5) ---
 if 'yield_alvo_slider' not in st.session_state:
-    # Inicializa o valor da memória a partir das configurações salvas
-    val_inicial = int(st.session_state.user_settings.get('yield_alvo', 0.06) * 100)
+    # Carrega o valor inicial (ex: 0.06 -> 6.0) como float
+    val_inicial = float(st.session_state.user_settings.get('yield_alvo', 0.06) * 100)
     st.session_state.yield_alvo_slider = val_inicial
 
-# O slider gerencia o valor na 'yield_alvo_slider' automaticamente
-yield_valor = st.sidebar.slider("Yield Mínimo Desejado (%)", 6, 12, key='yield_alvo_slider')
+# Slider agora com step=0.5 e formato de uma casa decimal
+yield_valor = st.sidebar.slider(
+    "Yield Mínimo Desejado (%)", 
+    min_value=6.0, 
+    max_value=12.0, 
+    step=0.5,
+    format="%.1f",
+    key='yield_alvo_slider'
+)
 yield_alvo = yield_valor / 100
 
-# Sincronização e salvamento permanente
+# Sincronização com as configurações salvas
 if yield_alvo != st.session_state.user_settings.get('yield_alvo'):
     st.session_state.user_settings['yield_alvo'] = yield_alvo
     salvar_configuracoes(st.session_state.user_settings)
@@ -148,16 +155,13 @@ if ticker_sel in dados_mercado:
     hover_fmt = "Rendimento: %{y:.2f}%<extra></extra>"
     fig = go.Figure()
 
-    # Linha da Ação
     fig.add_trace(go.Scatter(x=d['datas'], y=d['hist_norm'], name=f"{ticker_sel[:5]}", 
                              hovertemplate=hover_fmt, line=dict(color=acoes_config[ticker_sel]['cor'], width=3.5)))
     
-    # Linha DIVO11
     if 'DIVO11.SA' in dados_mercado:
         fig.add_trace(go.Scatter(x=dados_mercado['DIVO11.SA']['datas'], y=dados_mercado['DIVO11.SA']['hist_norm'], 
                                  name='DIVO11', hovertemplate=hover_fmt, line=dict(color='#f1c40f', width=2, dash='dash')))
     
-    # Linha BOVA11
     if 'BOVA11.SA' in dados_mercado:
         fig.add_trace(go.Scatter(x=dados_mercado['BOVA11.SA']['datas'], y=dados_mercado['BOVA11.SA']['hist_norm'], 
                                  name='BOVA11', hovertemplate=hover_fmt, line=dict(color='#95a5a6', width=2, dash='dot')))
