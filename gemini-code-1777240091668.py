@@ -6,7 +6,10 @@ from datetime import datetime, timedelta
 import math
 
 # 1. Configurações da Página
-st.set_page_config(page_title="EquityDash Ultra v5.2", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="EquityDash Ultra v5.3", layout="wide", initial_sidebar_state="expanded")
+
+# --- LINK DO SEU LOGO (Substitua pelo link da imagem que você mais gostou) ---
+LOGO_URL = "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/main/ED_LOGO_AQUA.png" 
 
 # --- CSS Profissional ---
 st.markdown("""
@@ -15,8 +18,10 @@ st.markdown("""
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; background-color: #f8f9fa; }
     .main-header { 
         background: linear-gradient(90deg, #0f172a 0%, #1e3a8a 100%);
-        padding: 25px; border-radius: 15px; color: white; text-align: center; margin-bottom: 30px;
+        padding: 30px; border-radius: 20px; color: white; text-align: center; margin-bottom: 30px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
     }
+    .logo-img { max-width: 120px; margin-bottom: 10px; border-radius: 12px; }
     .card-equity {
         background: white; padding: 20px; border-radius: 20px; border: 1px solid #eef2f6;
         box-shadow: 0 4px 12px rgba(0,0,0,0.03); text-align: center; height: 100%; display: flex; flex-direction: column; justify-content: space-between;
@@ -28,7 +33,14 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-st.markdown('<div class="main-header"><h1>EquityDash Ultra</h1><p>Análise Híbrida de Ativos • por Fer</p></div>', unsafe_allow_html=True)
+# Cabeçalho com Logo e Título
+st.markdown(f"""
+    <div class="main-header">
+        <img src="{LOGO_URL}" class="logo-img" onerror="this.style.display='none'">
+        <h1 style="margin:0; font-size: 2.5em;">EquityDash Ultra</h1>
+        <p style="opacity: 0.8; font-weight: 400;">Análise Híbrida de Ativos • por Fer</p>
+    </div>
+    """, unsafe_allow_html=True)
 
 # 2. Configuração de Ativos
 base_raw = "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/"
@@ -39,19 +51,14 @@ acoes_config = {
     'ITSA4.SA': {'cor': '#ec7000', 'payout': 0.4, 'fallback_lpa': 1.55, 'fallback_vpa': 8.90, 'logo': f"{base_raw}Itausa.png"}
 }
 
-# 3. Sidebar Intelligence
+# 3. Sidebar
 st.sidebar.title("💰 Gestão de Capital")
 valor_aporte = st.sidebar.number_input("Valor para investir (R$)", min_value=0.0, value=1000.0, step=100.0)
-
 st.sidebar.markdown("---")
-st.sidebar.title("⚙️ Filtros")
-opcoes_yield = [round(x * 0.1, 1) for x in range(60, 125, 5)] 
-yield_valor = st.sidebar.select_slider("Yield Alvo (Bazin) %", options=opcoes_yield, value=6.0)
+yield_valor = st.sidebar.select_slider("Yield Alvo (Bazin) %", options=[round(x*0.1,1) for x in range(60, 125, 5)], value=6.0)
 yield_alvo = yield_valor / 100
-
-st.sidebar.subheader("📅 Horizonte Gráfico")
 periodo_map = {"1 Ano": 1, "2 Anos": 2, "5 Anos": 5, "10 Anos": 10}
-periodo_texto = st.sidebar.radio("Período:", list(periodo_map.keys()), index=2)
+periodo_texto = st.sidebar.radio("Período do Gráfico:", list(periodo_map.keys()), index=2)
 
 if st.sidebar.button("🔄 Atualizar Mercado", use_container_width=True):
     st.cache_data.clear()
@@ -78,7 +85,7 @@ def fetch_market_data(tickers):
 
 market_data = fetch_market_data(list(acoes_config.keys()))
 
-# 5. Cards e Cálculo com Pesos Setoriais
+# 5. Cards de Análise
 calculos_final = []
 cols = st.columns(4)
 
@@ -91,12 +98,13 @@ for i, (ticker, conf) in enumerate(acoes_config.items()):
         t_bazin = (lpa * conf['payout']) / yield_alvo
         t_graham = math.sqrt(max(0, 22.5 * lpa * vpa)) if lpa > 0 and vpa > 0 else 0
         
+        # Lógica de Pesos Customizados
         if ticker == 'CXSE3.SA':
             teto_medio = (t_bazin * 0.8) + (t_graham * 0.2)
-            label_peso = "Peso: 80% Bazin / 20% Graham"
+            label_peso = "Prioridade: Dividendos (80%)"
         else:
             teto_medio = (t_bazin + t_graham) / 2 if t_graham > 0 else t_bazin
-            label_peso = "Peso: 50% Bazin / 50% Graham"
+            label_peso = "Equilibrado: 50/50"
         
         margem = ((teto_medio - d['price']) / teto_medio) * 100
         calculos_final.append({'ticker': ticker, 'margem': margem, 'price': d['price']})
@@ -124,7 +132,7 @@ for i, (ticker, conf) in enumerate(acoes_config.items()):
 
 # 6. Sugestão de Aporte
 st.markdown("---")
-st.subheader("🎯 Sugestão de Aporte")
+st.subheader("🎯 Sugestão de Alocação")
 oports = [c for c in calculos_final if c['margem'] > 0]
 if oports and valor_aporte > 0:
     s_cols = st.columns(len(oports))
@@ -132,13 +140,13 @@ if oports and valor_aporte > 0:
         qtd = (valor_aporte / len(oports)) // c['price']
         s_cols[idx].metric(f"Comprar {c['ticker'][:5]}", f"{int(qtd)} cotas", f"Total R$ {qtd*c['price']:.2f}")
 else:
-    st.info("Aguardando margem de segurança média para sugerir alocação.")
+    st.info("Nenhuma oportunidade com margem de segurança no momento.")
 
-# 7. Gráfico (Legenda movida para baixo)
+# 7. Gráfico Comparativo (Legenda Ajustada)
 st.markdown("<br>", unsafe_allow_html=True)
 with st.container():
     st.markdown('<div style="background: white; padding: 25px; border-radius: 20px; border: 1px solid #eef2f6;">', unsafe_allow_html=True)
-    target = st.selectbox("Histórico Comparativo:", list(acoes_config.keys()), index=3)
+    target = st.selectbox("Comparar Performance:", list(acoes_config.keys()), index=3)
     
     if target in market_data:
         fig = go.Figure()
@@ -164,13 +172,7 @@ with st.container():
             hovermode="x unified", 
             height=450, 
             margin=dict(l=0, r=0, t=10, b=80),
-            legend=dict(
-                orientation="h",   # Horizontal
-                yanchor="top",     # Âncora no topo da legenda
-                y=-0.2,            # Posiciona abaixo do eixo X
-                xanchor="center", 
-                x=0.5              # Centralizado
-            )
+            legend=dict(orientation="h", yanchor="top", y=-0.2, xanchor="center", x=0.5)
         )
         st.plotly_chart(fig, use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
