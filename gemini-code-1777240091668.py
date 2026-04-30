@@ -30,7 +30,7 @@ st.markdown("""
 
 st.markdown('<div class="main-header"><h1>EquityDash Ultra</h1><p>Análise Híbrida de Ativos • por Fer</p></div>', unsafe_allow_html=True)
 
-# 2. Configuração de Ativos (AXIA6 agora entendida como gigante elétrica)
+# 2. Configuração de Ativos
 base_raw = "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/"
 acoes_config = {
     'AXIA6.SA': {'cor': '#3bb54a', 'payout': 1.0, 'fallback_lpa': 0.65, 'fallback_vpa': 5.20, 'logo': f"{base_raw}AXIA.png"},
@@ -88,17 +88,13 @@ for i, (ticker, conf) in enumerate(acoes_config.items()):
         lpa = d['lpa'] if d['lpa'] and d['lpa'] > 0 else conf['fallback_lpa']
         vpa = d['vpa'] if d['vpa'] and d['vpa'] > 0 else conf['fallback_vpa']
         
-        # Metodologias Isoladas
         t_bazin = (lpa * conf['payout']) / yield_alvo
         t_graham = math.sqrt(max(0, 22.5 * lpa * vpa)) if lpa > 0 and vpa > 0 else 0
         
-        # --- Lógica de Pesos Customizados (Correção de CXSE3) ---
         if ticker == 'CXSE3.SA':
-            # Setor Seguros: Prioriza 80% Bazin (Dividendo) e 20% Graham (Bens)
             teto_medio = (t_bazin * 0.8) + (t_graham * 0.2)
             label_peso = "Peso: 80% Bazin / 20% Graham"
         else:
-            # Demais Setores: Média Simples (50/50)
             teto_medio = (t_bazin + t_graham) / 2 if t_graham > 0 else t_bazin
             label_peso = "Peso: 50% Bazin / 50% Graham"
         
@@ -128,7 +124,7 @@ for i, (ticker, conf) in enumerate(acoes_config.items()):
 
 # 6. Sugestão de Aporte
 st.markdown("---")
-st.subheader("🎯 Sugestão de Aporte Baseada na Margem")
+st.subheader("🎯 Sugestão de Aporte")
 oports = [c for c in calculos_final if c['margem'] > 0]
 if oports and valor_aporte > 0:
     s_cols = st.columns(len(oports))
@@ -138,7 +134,7 @@ if oports and valor_aporte > 0:
 else:
     st.info("Aguardando margem de segurança média para sugerir alocação.")
 
-# 7. Gráfico Comparativo
+# 7. Gráfico (Legenda movida para baixo)
 st.markdown("<br>", unsafe_allow_html=True)
 with st.container():
     st.markdown('<div style="background: white; padding: 25px; border-radius: 20px; border: 1px solid #eef2f6;">', unsafe_allow_html=True)
@@ -163,6 +159,18 @@ with st.container():
         for idx in ['DIVO11.SA', 'BOVA11.SA']:
             if idx in market_data: add_trace(idx)
 
-        fig.update_layout(template="plotly_white", hovermode="x unified", height=400, margin=dict(l=0, r=0, t=10, b=0))
+        fig.update_layout(
+            template="plotly_white", 
+            hovermode="x unified", 
+            height=450, 
+            margin=dict(l=0, r=0, t=10, b=80),
+            legend=dict(
+                orientation="h",   # Horizontal
+                yanchor="top",     # Âncora no topo da legenda
+                y=-0.2,            # Posiciona abaixo do eixo X
+                xanchor="center", 
+                x=0.5              # Centralizado
+            )
+        )
         st.plotly_chart(fig, use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
