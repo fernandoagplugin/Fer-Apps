@@ -10,31 +10,34 @@ LOGO_SIDEBAR = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5
 LOGO_HEADER = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5931da579a81ef961da034476ec3b8e82e/EquityDash%20Horizontal.png"
 
 st.set_page_config(
-    page_title="EquityDash Ultra v5.4", 
+    page_title="EquityDash Ultra v5.5", 
     page_icon=LOGO_SIDEBAR,
     layout="wide", 
     initial_sidebar_state="expanded"
 )
 
-# --- CSS Profissional Atualizado ---
+# --- CSS Profissional Atualizado (Logo Reduzida) ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; background-color: #f8f9fa; }
     
-    /* Cabeçalho com fundo Verde-Água */
+    /* Cabeçalho mais compacto */
     .main-header { 
-        background-color: #20B2AA; /* Verde-água sólido */
-        padding: 15px; 
-        border-radius: 15px; 
+        background-color: #20B2AA; 
+        padding: 10px; /* Reduzido de 15px para 10px */
+        border-radius: 12px; 
         text-align: center; 
-        margin-bottom: 30px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        margin-bottom: 25px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
     }
+    
+    /* Logo reduzida em ~60% */
     .header-logo {
-        max-width: 320px;
+        max-width: 130px; /* Reduzido de 320px para 130px */
         height: auto;
     }
+    
     .card-equity {
         background: white; padding: 20px; border-radius: 20px; border: 1px solid #eef2f6;
         box-shadow: 0 4px 12px rgba(0,0,0,0.03); text-align: center; height: 100%; display: flex; flex-direction: column; justify-content: space-between;
@@ -46,10 +49,10 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# Logo na Sidebar (Topo da barra à esquerda)
+# Logo na Sidebar
 st.sidebar.image(LOGO_SIDEBAR, use_container_width=True)
 
-# Cabeçalho com Logo Horizontal e sem fundo azul
+# Cabeçalho Ajustado
 st.markdown(f"""
     <div class="main-header">
         <img src="{LOGO_HEADER}" class="header-logo">
