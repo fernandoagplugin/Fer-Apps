@@ -10,49 +10,53 @@ LOGO_SIDEBAR = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5
 LOGO_HEADER = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5931da579a81ef961da034476ec3b8e82e/EquityDash%20Horizontal.png"
 
 st.set_page_config(
-    page_title="EquityDash Ultra v5.5", 
+    page_title="EquityDash Ultra v5.7", 
     page_icon=LOGO_SIDEBAR,
     layout="wide", 
     initial_sidebar_state="expanded"
 )
 
-# --- CSS Profissional Atualizado (Logo Reduzida) ---
-st.markdown("""
+# --- CSS Profissional com Correção de Renderização ---
+st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-    html, body, [class*="css"] { font-family: 'Inter', sans-serif; background-color: #f8f9fa; }
+    html, body, [class*="css"] {{ font-family: 'Inter', sans-serif; background-color: #f8f9fa; }}
     
-    /* Cabeçalho mais compacto */
-    .main-header { 
+    /* Cabeçalho Minimalista */
+    .main-header {{ 
         background-color: #20B2AA; 
-        padding: 10px; /* Reduzido de 15px para 10px */
-        border-radius: 12px; 
+        padding: 6px; 
+        border-radius: 10px; 
         text-align: center; 
-        margin-bottom: 25px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
-    }
+        margin-bottom: 20px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+    }}
     
-    /* Logo reduzida em ~60% */
-    .header-logo {
-        max-width: 130px; /* Reduzido de 320px para 130px */
+    /* Correção de Distorção da Logo */
+    .header-logo {{
+        width: 65px; 
         height: auto;
-    }
+        image-rendering: -webkit-optimize-contrast; /* Melhora nitidez no Chrome/Edge */
+        image-rendering: crisp-edges;
+        display: block;
+        margin: 0 auto;
+    }}
     
-    .card-equity {
+    .card-equity {{
         background: white; padding: 20px; border-radius: 20px; border: 1px solid #eef2f6;
         box-shadow: 0 4px 12px rgba(0,0,0,0.03); text-align: center; height: 100%; display: flex; flex-direction: column; justify-content: space-between;
-    }
-    .badge-buy { background-color: #dcfce7; color: #15803d; padding: 4px 10px; border-radius: 12px; font-weight: 700; font-size: 11px; }
-    .badge-wait { background-color: #fef3c7; color: #92400e; padding: 4px 10px; border-radius: 12px; font-weight: 700; font-size: 11px; }
-    .label-text { color: #64748b; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
-    .weight-info { font-size: 9px; color: #94a3b8; margin-top: 5px; font-style: italic; }
+    }}
+    .badge-buy {{ background-color: #dcfce7; color: #15803d; padding: 4px 10px; border-radius: 12px; font-weight: 700; font-size: 11px; }}
+    .badge-wait {{ background-color: #fef3c7; color: #92400e; padding: 4px 10px; border-radius: 12px; font-weight: 700; font-size: 11px; }}
+    .label-text {{ color: #64748b; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }}
+    .weight-info {{ font-size: 9px; color: #94a3b8; margin-top: 5px; font-style: italic; }}
     </style>
     """, unsafe_allow_html=True)
 
 # Logo na Sidebar
 st.sidebar.image(LOGO_SIDEBAR, use_container_width=True)
 
-# Cabeçalho Ajustado
+# Cabeçalho com Logo Corrigida
 st.markdown(f"""
     <div class="main-header">
         <img src="{LOGO_HEADER}" class="header-logo">
@@ -107,7 +111,7 @@ def fetch_market_data(tickers):
 
 market_data = fetch_market_data(list(acoes_config.keys()))
 
-# 5. Cards e Cálculo com Pesos Setoriais
+# 5. Cards e Cálculo
 calculos_final = []
 cols = st.columns(4)
 
