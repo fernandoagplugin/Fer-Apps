@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import math
 
 # 1. Configurações da Página
-st.set_page_config(page_title="EquityDash Ultra", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="EquityDash Ultra v5.2", layout="wide", initial_sidebar_state="expanded")
 
 # --- CSS Profissional ---
 st.markdown("""
@@ -24,12 +24,13 @@ st.markdown("""
     .badge-buy { background-color: #dcfce7; color: #15803d; padding: 4px 10px; border-radius: 12px; font-weight: 700; font-size: 11px; }
     .badge-wait { background-color: #fef3c7; color: #92400e; padding: 4px 10px; border-radius: 12px; font-weight: 700; font-size: 11px; }
     .label-text { color: #64748b; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+    .weight-info { font-size: 9px; color: #94a3b8; margin-top: 5px; font-style: italic; }
     </style>
     """, unsafe_allow_html=True)
 
-st.markdown('<div class="main-header"><h1>EquityDash Ultra</h1><p>Análise de Dividendos e Alerta Patrimonial • por Fer</p></div>', unsafe_allow_html=True)
+st.markdown('<div class="main-header"><h1>EquityDash Ultra</h1><p>Análise Híbrida de Ativos • por Fer</p></div>', unsafe_allow_html=True)
 
-# 2. Configuração de Ativos
+# 2. Configuração de Ativos (AXIA6 agora entendida como gigante elétrica)
 base_raw = "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/"
 acoes_config = {
     'AXIA6.SA': {'cor': '#3bb54a', 'payout': 1.0, 'fallback_lpa': 0.65, 'fallback_vpa': 5.20, 'logo': f"{base_raw}AXIA.png"},
@@ -44,7 +45,6 @@ valor_aporte = st.sidebar.number_input("Valor para investir (R$)", min_value=0.0
 
 st.sidebar.markdown("---")
 st.sidebar.title("⚙️ Filtros")
-# Yield de 0.5 em 0.5
 opcoes_yield = [round(x * 0.1, 1) for x in range(60, 125, 5)] 
 yield_valor = st.sidebar.select_slider("Yield Alvo (Bazin) %", options=opcoes_yield, value=6.0)
 yield_alvo = yield_valor / 100
@@ -53,7 +53,6 @@ st.sidebar.subheader("📅 Horizonte Gráfico")
 periodo_map = {"1 Ano": 1, "2 Anos": 2, "5 Anos": 5, "10 Anos": 10}
 periodo_texto = st.sidebar.radio("Período:", list(periodo_map.keys()), index=2)
 
-st.sidebar.markdown("---")
 if st.sidebar.button("🔄 Atualizar Mercado", use_container_width=True):
     st.cache_data.clear()
     st.rerun()
@@ -79,7 +78,7 @@ def fetch_market_data(tickers):
 
 market_data = fetch_market_data(list(acoes_config.keys()))
 
-# 5. Cards e Cálculo da Média
+# 5. Cards e Cálculo com Pesos Setoriais
 calculos_final = []
 cols = st.columns(4)
 
@@ -89,13 +88,21 @@ for i, (ticker, conf) in enumerate(acoes_config.items()):
         lpa = d['lpa'] if d['lpa'] and d['lpa'] > 0 else conf['fallback_lpa']
         vpa = d['vpa'] if d['vpa'] and d['vpa'] > 0 else conf['fallback_vpa']
         
+        # Metodologias Isoladas
         t_bazin = (lpa * conf['payout']) / yield_alvo
         t_graham = math.sqrt(max(0, 22.5 * lpa * vpa)) if lpa > 0 and vpa > 0 else 0
         
-        # Média que define o Veredito
-        teto_medio = (t_bazin + t_graham) / 2 if t_graham > 0 else t_bazin
+        # --- Lógica de Pesos Customizados (Correção de CXSE3) ---
+        if ticker == 'CXSE3.SA':
+            # Setor Seguros: Prioriza 80% Bazin (Dividendo) e 20% Graham (Bens)
+            teto_medio = (t_bazin * 0.8) + (t_graham * 0.2)
+            label_peso = "Peso: 80% Bazin / 20% Graham"
+        else:
+            # Demais Setores: Média Simples (50/50)
+            teto_medio = (t_bazin + t_graham) / 2 if t_graham > 0 else t_bazin
+            label_peso = "Peso: 50% Bazin / 50% Graham"
+        
         margem = ((teto_medio - d['price']) / teto_medio) * 100
-
         calculos_final.append({'ticker': ticker, 'margem': margem, 'price': d['price']})
 
         with cols[i]:
@@ -108,17 +115,20 @@ for i, (ticker, conf) in enumerate(acoes_config.items()):
                         <span class="{"badge-buy" if margem > 0 else "badge-wait"}">
                             {"COMPRA" if margem > 0 else "AGUARDAR"}: {margem:.1f}%
                         </span>
+                        <div class="weight-info">{label_peso}</div>
                     </div>
                     <div style="margin-top:15px; text-align: left; background: #fdfdfd; padding: 10px; border-radius: 10px;">
                         <div style="display:flex; justify-content:space-between"><span class="label-text">Bazin</span><b>R$ {t_bazin:.2f}</b></div>
                         <div style="display:flex; justify-content:space-between"><span class="label-text">Graham</span><b>R$ {t_graham:.2f}</b></div>
+                        <hr style="margin: 8px 0; border: 0; border-top: 1px solid #eee;">
+                        <div style="display:flex; justify-content:space-between; color:#1e3a8a"><span class="label-text" style="color:#1e3a8a">Teto Híbrido</span><b>R$ {teto_medio:.2f}</b></div>
                     </div>
                 </div>
             """, unsafe_allow_html=True)
 
-# 6. Alocação
+# 6. Sugestão de Aporte
 st.markdown("---")
-st.subheader("🎯 Sugestão de Aporte")
+st.subheader("🎯 Sugestão de Aporte Baseada na Margem")
 oports = [c for c in calculos_final if c['margem'] > 0]
 if oports and valor_aporte > 0:
     s_cols = st.columns(len(oports))
@@ -128,7 +138,7 @@ if oports and valor_aporte > 0:
 else:
     st.info("Aguardando margem de segurança média para sugerir alocação.")
 
-# 7. Gráfico (Filtro de Data Seguro)
+# 7. Gráfico Comparativo
 st.markdown("<br>", unsafe_allow_html=True)
 with st.container():
     st.markdown('<div style="background: white; padding: 25px; border-radius: 20px; border: 1px solid #eef2f6;">', unsafe_allow_html=True)
@@ -141,7 +151,7 @@ with st.container():
         
         def add_trace(t, is_main=False):
             df = market_data[t]['hist'].copy()
-            df.index = df.index.tz_localize(None) # Remove timezone
+            df.index = df.index.tz_localize(None)
             df_f = df[df.index >= data_limite]
             if not df_f.empty:
                 norm = (df_f['Close'] / df_f['Close'].iloc[0]) * 100
