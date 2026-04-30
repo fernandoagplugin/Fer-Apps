@@ -5,30 +5,35 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import math
 
-# 1. Configurações da Página (Definindo o ícone da aba com seu novo logo)
-LOGO_SIDEBAR = "https://raw.githubusercontent.com/fernandoagplugin/Icone/d53db13c0cce6fb144945ff637acc08eeee78ab2/EquityDash%20Logo.png"
-LOGO_HEADER = "https://raw.githubusercontent.com/fernandoagplugin/Icone/d53db13c0cce6fb144945ff637acc08eeee78ab2/EquityDash%20Horizontal.png"
+# 1. Configurações da Página
+LOGO_SIDEBAR = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5931da579a81ef961da034476ec3b8e82e/EquityDash%20Logo.png"
+LOGO_HEADER = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5931da579a81ef961da034476ec3b8e82e/EquityDash%20Horizontal.png"
 
 st.set_page_config(
-    page_title="EquityDash Ultra v5.3", 
+    page_title="EquityDash Ultra v5.4", 
     page_icon=LOGO_SIDEBAR,
     layout="wide", 
     initial_sidebar_state="expanded"
 )
 
-# --- CSS Profissional ---
+# --- CSS Profissional Atualizado ---
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
     html, body, [class*="css"] { font-family: 'Inter', sans-serif; background-color: #f8f9fa; }
     
+    /* Cabeçalho com fundo Verde-Água */
     .main-header { 
-        background: linear-gradient(90deg, #0f172a 0%, #1e3a8a 100%);
-        padding: 20px; border-radius: 15px; color: white; text-align: center; margin-bottom: 30px;
+        background-color: #20B2AA; /* Verde-água sólido */
+        padding: 15px; 
+        border-radius: 15px; 
+        text-align: center; 
+        margin-bottom: 30px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
     }
     .header-logo {
-        max-width: 350px;
-        margin-bottom: 10px;
+        max-width: 320px;
+        height: auto;
     }
     .card-equity {
         background: white; padding: 20px; border-radius: 20px; border: 1px solid #eef2f6;
@@ -38,21 +43,16 @@ st.markdown("""
     .badge-wait { background-color: #fef3c7; color: #92400e; padding: 4px 10px; border-radius: 12px; font-weight: 700; font-size: 11px; }
     .label-text { color: #64748b; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
     .weight-info { font-size: 9px; color: #94a3b8; margin-top: 5px; font-style: italic; }
-    
-    /* Ajuste para a imagem da sidebar */
-    [data-testid="stSidebarNav"] { padding-top: 0px; }
-    .sidebar-logo { display: block; margin-left: auto; margin-right: auto; width: 60%; margin-bottom: 20px; }
     </style>
     """, unsafe_allow_html=True)
 
-# Logo na Sidebar
+# Logo na Sidebar (Topo da barra à esquerda)
 st.sidebar.image(LOGO_SIDEBAR, use_container_width=True)
 
-# Cabeçalho com Logo Horizontal
+# Cabeçalho com Logo Horizontal e sem fundo azul
 st.markdown(f"""
     <div class="main-header">
         <img src="{LOGO_HEADER}" class="header-logo">
-        <p style="margin:0; opacity: 0.8;">Análise Híbrida de Ativos • por Fer</p>
     </div>
     """, unsafe_allow_html=True)
 
@@ -160,7 +160,7 @@ if oports and valor_aporte > 0:
 else:
     st.info("Aguardando margem de segurança média para sugerir alocação.")
 
-# 7. Gráfico (Legenda movida para baixo)
+# 7. Gráfico Comparativo
 st.markdown("<br>", unsafe_allow_html=True)
 with st.container():
     st.markdown('<div style="background: white; padding: 25px; border-radius: 20px; border: 1px solid #eef2f6;">', unsafe_allow_html=True)
@@ -190,13 +190,7 @@ with st.container():
             hovermode="x unified", 
             height=450, 
             margin=dict(l=0, r=0, t=10, b=80),
-            legend=dict(
-                orientation="h",
-                yanchor="top",
-                y=-0.2,
-                xanchor="center",
-                x=0.5
-            )
+            legend=dict(orientation="h", yanchor="top", y=-0.2, xanchor="center", x=0.5)
         )
         st.plotly_chart(fig, use_container_width=True)
     st.markdown('</div>', unsafe_allow_html=True)
