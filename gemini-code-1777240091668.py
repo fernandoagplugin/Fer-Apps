@@ -10,31 +10,31 @@ LOGO_SIDEBAR = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5
 LOGO_HEADER = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5931da579a81ef961da034476ec3b8e82e/EquityDash%20Horizontal.png"
 
 st.set_page_config(
-    page_title="EquityDash Ultra v5.8", 
+    page_title="EquityDash Ultra v5.9", 
     page_icon=LOGO_SIDEBAR,
     layout="wide", 
     initial_sidebar_state="expanded"
 )
 
-# --- CSS Profissional com Ajuste de Tamanho Equilibrado ---
+# --- CSS Profissional com Logo em Destaque ---
 st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
     html, body, [class*="css"] {{ font-family: 'Inter', sans-serif; background-color: #f8f9fa; }}
     
-    /* Cabeçalho Ajustado */
+    /* Cabeçalho com Ajuste de Respiro */
     .main-header {{ 
         background-color: #20B2AA; 
-        padding: 12px; /* Aumentei um pouco o respiro */
+        padding: 15px; 
         border-radius: 12px; 
         text-align: center; 
         margin-bottom: 25px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.08);
     }}
     
-    /* Tamanho equilibrado (200px) e correção de nitidez */
+    /* Tamanho Otimizado (250px) e Renderização Nítida */
     .header-logo {{
-        width: 200px; 
+        width: 250px; 
         height: auto;
         image-rendering: -webkit-optimize-contrast;
         image-rendering: crisp-edges;
@@ -56,7 +56,7 @@ st.markdown(f"""
 # Logo na Sidebar
 st.sidebar.image(LOGO_SIDEBAR, use_container_width=True)
 
-# Cabeçalho
+# Cabeçalho com Logo Ampliada
 st.markdown(f"""
     <div class="main-header">
         <img src="{LOGO_HEADER}" class="header-logo">
@@ -111,7 +111,7 @@ def fetch_market_data(tickers):
 
 market_data = fetch_market_data(list(acoes_config.keys()))
 
-# 5. Cards e Cálculo com Pesos Setoriais
+# 5. Cards e Cálculo
 calculos_final = []
 cols = st.columns(4)
 
