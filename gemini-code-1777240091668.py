@@ -10,7 +10,7 @@ LOGO_SIDEBAR = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5
 LOGO_HEADER = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5931da579a81ef961da034476ec3b8e82e/EquityDash%20Horizontal.png"
 
 st.set_page_config(
-    page_title="EquityDash Ultra v6.0", 
+    page_title="EquityDash Ultra v6.1", 
     page_icon=LOGO_SIDEBAR,
     layout="wide", 
     initial_sidebar_state="expanded"
@@ -63,13 +63,14 @@ st.markdown(f"""
     </div>
     """, unsafe_allow_html=True)
 
-# 2. Configuração de Ativos
+# 2. Configuração de Ativos (Agora com Sanepar)
 base_raw = "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/"
 acoes_config = {
     'AXIA6.SA': {'cor': '#3bb54a', 'payout': 1.0, 'fallback_lpa': 0.65, 'fallback_vpa': 5.20, 'logo': f"{base_raw}AXIA.png"},
     'CPLE3.SA': {'cor': '#2d3e50', 'payout': 0.5, 'fallback_lpa': 0.85, 'fallback_vpa': 10.40, 'logo': f"{base_raw}COPEL.png"},
     'CXSE3.SA': {'cor': '#005ca9', 'payout': 0.9, 'fallback_lpa': 1.40, 'fallback_vpa': 4.10, 'logo': f"{base_raw}Caixa.png"},
-    'ITSA4.SA': {'cor': '#ec7000', 'payout': 0.4, 'fallback_lpa': 1.55, 'fallback_vpa': 8.90, 'logo': f"{base_raw}Itausa.png"}
+    'ITSA4.SA': {'cor': '#ec7000', 'payout': 0.4, 'fallback_lpa': 1.55, 'fallback_vpa': 8.90, 'logo': f"{base_raw}Itausa.png"},
+    'SAPR4.SA': {'cor': '#009fe3', 'payout': 0.5, 'fallback_lpa': 1.10, 'fallback_vpa': 6.80, 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0dd7c40bf47a5487a468aeaca985451e8d24cc6a/Sanepar.PNG"}
 }
 
 # 3. Sidebar Intelligence
@@ -111,9 +112,9 @@ def fetch_market_data(tickers):
 
 market_data = fetch_market_data(list(acoes_config.keys()))
 
-# 5. Cards e Cálculo
+# 5. Cards e Cálculo (Agora com 5 colunas automáticas)
 calculos_final = []
-cols = st.columns(4)
+cols = st.columns(len(acoes_config)) # <-- Cria colunas dinamicamente baseado na quantidade de ativos
 
 for i, (ticker, conf) in enumerate(acoes_config.items()):
     if ticker in market_data:
@@ -171,7 +172,7 @@ else:
 st.markdown("<br>", unsafe_allow_html=True)
 with st.container():
     st.markdown('<div style="background: white; padding: 25px; border-radius: 20px; border: 1px solid #eef2f6;">', unsafe_allow_html=True)
-    target = st.selectbox("Histórico Comparativo:", list(acoes_config.keys()), index=3)
+    target = st.selectbox("Histórico Comparativo:", list(acoes_config.keys()), index=4) # Index atualizado para pegar SAPR4 se preferir
     
     if target in market_data:
         fig = go.Figure()
