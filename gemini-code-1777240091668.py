@@ -10,7 +10,7 @@ LOGO_SIDEBAR = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5
 LOGO_HEADER = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5931da579a81ef961da034476ec3b8e82e/EquityDash%20Horizontal.png"
 
 st.set_page_config(
-    page_title="EquityDash Ultra v6.1", 
+    page_title="EquityDash Ultra v6.2", 
     page_icon=LOGO_SIDEBAR,
     layout="wide", 
     initial_sidebar_state="expanded"
@@ -22,7 +22,7 @@ st.markdown(f"""
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
     html, body, [class*="css"] {{ font-family: 'Inter', sans-serif; background-color: #f8f9fa; }}
     
-    /* Cabeçalho com Ajuste de Altura para a Logo Maior */
+    /* Cabeçalho */
     .main-header {{ 
         background-color: #20B2AA; 
         padding: 20px; 
@@ -32,7 +32,7 @@ st.markdown(f"""
         box-shadow: 0 4px 12px rgba(0,0,0,0.08);
     }}
     
-    /* Proporção Duplicada (500px) */
+    /* Logo 500px */
     .header-logo {{
         width: 500px; 
         height: auto;
@@ -56,14 +56,14 @@ st.markdown(f"""
 # Logo na Sidebar
 st.sidebar.image(LOGO_SIDEBAR, use_container_width=True)
 
-# Cabeçalho com Logo Duplicada
+# Cabeçalho 
 st.markdown(f"""
     <div class="main-header">
         <img src="{LOGO_HEADER}" class="header-logo">
     </div>
     """, unsafe_allow_html=True)
 
-# 2. Configuração de Ativos (Agora com Sanepar)
+# 2. Configuração de Ativos
 base_raw = "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/"
 acoes_config = {
     'AXIA6.SA': {'cor': '#3bb54a', 'payout': 1.0, 'fallback_lpa': 0.65, 'fallback_vpa': 5.20, 'logo': f"{base_raw}AXIA.png"},
@@ -112,9 +112,9 @@ def fetch_market_data(tickers):
 
 market_data = fetch_market_data(list(acoes_config.keys()))
 
-# 5. Cards e Cálculo (Agora com 5 colunas automáticas)
+# 5. Cards e Cálculo
 calculos_final = []
-cols = st.columns(len(acoes_config)) # <-- Cria colunas dinamicamente baseado na quantidade de ativos
+cols = st.columns(len(acoes_config)) 
 
 for i, (ticker, conf) in enumerate(acoes_config.items()):
     if ticker in market_data:
@@ -125,7 +125,8 @@ for i, (ticker, conf) in enumerate(acoes_config.items()):
         t_bazin = (lpa * conf['payout']) / yield_alvo
         t_graham = math.sqrt(max(0, 22.5 * lpa * vpa)) if lpa > 0 and vpa > 0 else 0
         
-        if ticker == 'CXSE3.SA':
+        # AJUSTE CIRÚRGICO: CXSE3 e SAPR4 agora usam peso 80/20
+        if ticker in ['CXSE3.SA', 'SAPR4.SA']:
             teto_medio = (t_bazin * 0.8) + (t_graham * 0.2)
             label_peso = "Peso: 80% Bazin / 20% Graham"
         else:
@@ -172,7 +173,7 @@ else:
 st.markdown("<br>", unsafe_allow_html=True)
 with st.container():
     st.markdown('<div style="background: white; padding: 25px; border-radius: 20px; border: 1px solid #eef2f6;">', unsafe_allow_html=True)
-    target = st.selectbox("Histórico Comparativo:", list(acoes_config.keys()), index=4) # Index atualizado para pegar SAPR4 se preferir
+    target = st.selectbox("Histórico Comparativo:", list(acoes_config.keys()), index=4) 
     
     if target in market_data:
         fig = go.Figure()
