@@ -9,7 +9,7 @@ import math
 LOGO_SIDEBAR = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5931da579a81ef961da034476ec3b8e82e/EquityDash%20Logo.png"
 LOGO_HEADER = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5931da579a81ef961da034476ec3b8e82e/EquityDash%20Horizontal.png"
 
-st.set_page_config(page_title="EquityDash Ultra v6.7", page_icon=LOGO_SIDEBAR, layout="wide")
+st.set_page_config(page_title="EquityDash Ultra v6.8", page_icon=LOGO_SIDEBAR, layout="wide")
 
 # --- CSS Profissional ---
 st.markdown(f"""
@@ -28,14 +28,14 @@ st.markdown(f"""
 st.sidebar.image(LOGO_SIDEBAR, use_container_width=True)
 st.markdown(f'<div class="main-header"><img src="{LOGO_HEADER}" class="header-logo"></div>', unsafe_allow_html=True)
 
-# 2. Ativos e Parâmetros (Inteligência REIT adicionada)
+# 2. Ativos e Parâmetros (Inteligência REIT adicionada e Logo EQIX atualizado)
 acoes_config = {
     'AXIA6.SA': {'tipo': 'Acao', 'cor': '#3bb54a', 'payout': 1.0, 'lpa': 6.80, 'vpa': 52.10, 'price': 68.65, 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/AXIA.png", 'moeda': 'R$'},
     'CPLE3.SA': {'tipo': 'Acao', 'cor': '#2d3e50', 'payout': 0.5, 'lpa': 0.85, 'vpa': 10.40, 'price': 15.90, 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/COPEL.png", 'moeda': 'R$'},
     'CXSE3.SA': {'tipo': 'Acao', 'cor': '#005ca9', 'payout': 0.9, 'lpa': 1.40, 'vpa': 4.10, 'price': 18.09, 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/Caixa.png", 'moeda': 'R$'},
     'ITSA4.SA': {'tipo': 'Acao', 'cor': '#ec7000', 'payout': 0.4, 'lpa': 1.55, 'vpa': 8.90, 'price': 13.92, 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/Itausa.png", 'moeda': 'R$'},
     'SAPR4.SA': {'tipo': 'Acao', 'cor': '#009fe3', 'payout': 0.5, 'lpa': 1.10, 'vpa': 6.80, 'price': 7.88, 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0dd7c40bf47a5487a468aeaca985451e8d24cc6a/Sanepar.PNG", 'moeda': 'R$'},
-    'EQIX': {'tipo': 'REIT', 'cor': '#E31C23', 'dpa': 17.04, 'ffo': 34.80, 'price': 800.00, 'logo': "https://logo.clearbit.com/equinix.com", 'moeda': 'US$'}
+    'EQIX': {'tipo': 'REIT', 'cor': '#E31C23', 'dpa': 17.04, 'ffo': 34.80, 'price': 800.00, 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/02b13adcb14ea6c1530085e2af5a531738423aec/Equinix_Logo.png", 'moeda': 'US$'}
 }
 
 # 3. Sidebar
