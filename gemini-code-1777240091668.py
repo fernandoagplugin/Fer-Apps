@@ -9,7 +9,7 @@ import math
 LOGO_SIDEBAR = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5931da579a81ef961da034476ec3b8e82e/EquityDash%20Logo.png"
 LOGO_HEADER = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5931da579a81ef961da034476ec3b8e82e/EquityDash%20Horizontal.png"
 
-st.set_page_config(page_title="EquityDash Ultra v6.8", page_icon=LOGO_SIDEBAR, layout="wide")
+st.set_page_config(page_title="EquityDash Ultra v6.9", page_icon=LOGO_SIDEBAR, layout="wide")
 
 # --- CSS Profissional ---
 st.markdown(f"""
@@ -28,9 +28,9 @@ st.markdown(f"""
 st.sidebar.image(LOGO_SIDEBAR, use_container_width=True)
 st.markdown(f'<div class="main-header"><img src="{LOGO_HEADER}" class="header-logo"></div>', unsafe_allow_html=True)
 
-# 2. Ativos e Parâmetros (Inteligência REIT adicionada e Logo EQIX atualizado)
+# 2. Ativos e Parâmetros (Migração AXIA3 e Logo EQIX)
 acoes_config = {
-    'AXIA6.SA': {'tipo': 'Acao', 'cor': '#3bb54a', 'payout': 1.0, 'lpa': 6.80, 'vpa': 52.10, 'price': 68.65, 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/AXIA.png", 'moeda': 'R$'},
+    'AXIA3.SA': {'tipo': 'Acao', 'cor': '#3bb54a', 'payout': 1.0, 'lpa': 6.80, 'vpa': 52.10, 'price': 68.65, 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/AXIA.png", 'moeda': 'R$'},
     'CPLE3.SA': {'tipo': 'Acao', 'cor': '#2d3e50', 'payout': 0.5, 'lpa': 0.85, 'vpa': 10.40, 'price': 15.90, 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/COPEL.png", 'moeda': 'R$'},
     'CXSE3.SA': {'tipo': 'Acao', 'cor': '#005ca9', 'payout': 0.9, 'lpa': 1.40, 'vpa': 4.10, 'price': 18.09, 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/Caixa.png", 'moeda': 'R$'},
     'ITSA4.SA': {'tipo': 'Acao', 'cor': '#ec7000', 'payout': 0.4, 'lpa': 1.55, 'vpa': 8.90, 'price': 13.92, 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/Itausa.png", 'moeda': 'R$'},
@@ -144,10 +144,11 @@ for t in [target, 'BOVA11.SA', 'DIVO11.SA']:
                 norm = (df['Close'] / df['Close'].iloc[0]) * 100
                 fig.add_trace(go.Scatter(x=df.index, y=norm, name=t[:6], line=dict(width=2)))
 
+# Ajuste da legenda e margens do gráfico
 fig.update_layout(
     template="plotly_white", 
     height=450, 
-    margin=dict(l=0, r=0, t=10, b=10),
-    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+    margin=dict(l=0, r=0, t=20, b=50),
+    legend=dict(orientation="h", yanchor="top", y=-0.15, xanchor="center", x=0.5)
 )
 st.plotly_chart(fig, use_container_width=True)
