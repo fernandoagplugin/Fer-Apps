@@ -5,108 +5,45 @@ import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import math
 
-# 1. Configurações da Página
-LOGO_SIDEBAR = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5931da579a81ef961da034476ec3b8e82e/EquityDash%20Logo.png"
-LOGO_HEADER = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5931da579a81ef961da034476ec3b8e82e/EquityDash%20Horizontal.png"
+# Configuração Base
+st.set_page_config(layout="wide")
 
-st.set_page_config(page_title="EquityDash Ultra v6.8", page_icon=LOGO_SIDEBAR, layout="wide")
-
-# --- CSS Profissional ---
-st.markdown(f"""
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-    html, body, [class*="css"] {{ font-family: 'Inter', sans-serif; background-color: #f8f9fa; }}
-    .main-header {{ background-color: #20B2AA; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 30px; }}
-    .header-logo {{ width: 500px; height: auto; display: block; margin: 0 auto; }}
-    .card-equity {{ background: white; padding: 20px; border-radius: 20px; border: 1px solid #eef2f6; box-shadow: 0 4px 12px rgba(0,0,0,0.03); text-align: center; height: 100%; display: flex; flex-direction: column; justify-content: space-between; }}
-    .badge-buy {{ background-color: #dcfce7; color: #15803d; padding: 4px 10px; border-radius: 12px; font-weight: 700; font-size: 11px; }}
-    .badge-wait {{ background-color: #fef3c7; color: #92400e; padding: 4px 10px; border-radius: 12px; font-weight: 700; font-size: 11px; }}
-    .label-text {{ color: #64748b; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }}
-    </style>
-    """, unsafe_allow_html=True)
-
-st.sidebar.image(LOGO_SIDEBAR, use_container_width=True)
-st.markdown(f'<div class="main-header"><img src="{LOGO_HEADER}" class="header-logo"></div>', unsafe_allow_html=True)
-
-# 2. Ativos e Parâmetros
+# 1. ATIVOS: O PREÇO AQUI É A VERDADE ABSOLUTA
 acoes_config = {
-    'AXIA3.SA': {'tipo': 'Acao', 'cor': '#3bb54a', 'payout': 1.0, 'lpa': 6.80, 'vpa': 52.10, 'price': 50.00, 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/AXIA.png", 'moeda': 'R$'},
-    'CPLE3.SA': {'tipo': 'Acao', 'cor': '#2d3e50', 'payout': 0.5, 'lpa': 0.85, 'vpa': 10.40, 'price': 15.90, 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/COPEL.png", 'moeda': 'R$'},
-    'CXSE3.SA': {'tipo': 'Acao', 'cor': '#005ca9', 'payout': 0.9, 'lpa': 1.40, 'vpa': 4.10, 'price': 18.09, 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/Caixa.png", 'moeda': 'R$'},
-    'ITSA4.SA': {'tipo': 'Acao', 'cor': '#ec7000', 'payout': 0.4, 'lpa': 1.55, 'vpa': 8.90, 'price': 13.92, 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/Itausa.png", 'moeda': 'R$'},
-    'SAPR4.SA': {'tipo': 'Acao', 'cor': '#009fe3', 'payout': 0.5, 'lpa': 1.10, 'vpa': 6.80, 'price': 7.88, 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0dd7c40bf47a5487a468aeaca985451e8d24cc6a/Sanepar.PNG", 'moeda': 'R$'},
-    'EQIX': {'tipo': 'REIT', 'cor': '#E31C23', 'dpa': 17.04, 'ffo': 34.80, 'price': 800.00, 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/02b13adcb14ea6c1530085e2af5a531738423aec/Equinix_Logo.png", 'moeda': 'US$'}
+    'AXIA3.SA': {'tipo': 'Acao', 'price': 50.00, 'lpa': 6.80, 'payout': 1.0, 'vpa': 52.10, 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/AXIA.png"},
+    'CPLE3.SA': {'tipo': 'Acao', 'price': 15.90, 'lpa': 0.85, 'payout': 0.5, 'vpa': 10.40, 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/COPEL.png"},
+    # Adicione os outros aqui seguindo o mesmo padrão...
 }
 
-# 3. Sidebar
-st.sidebar.title("💰 Gestão de Capital")
-valor_aporte = st.sidebar.number_input("Valor Investimento (R$)", min_value=0.0, value=1000.0)
-
-st.sidebar.markdown("---")
-st.sidebar.title("⚙️ Filtros de Valuation")
-yield_valor_br = st.sidebar.select_slider("Yield Alvo BR (Bazin) %", options=[round(x*0.1,1) for x in range(60,125,5)], value=6.0)
-yield_alvo_br = yield_valor_br / 100
-yield_valor_us = st.sidebar.select_slider("Yield Alvo EUA/REITs %", options=[round(x*0.1,1) for x in range(15,65,5)], value=2.5)
-yield_alvo_us = yield_valor_us / 100
-st.sidebar.markdown("---")
-periodo_texto = st.sidebar.radio("Período Gráfico:", ["1 Ano", "2 Anos", "5 Anos", "10 Anos"], index=2)
-
-# 4. Engine de Dados
-@st.cache_data(ttl=600)
-def get_data():
-    tickers = list(acoes_config.keys()) + ['BOVA11.SA', 'DIVO11.SA']
+# 2. BUSCA DE DADOS (APENAS PARA OS GRÁFICOS)
+@st.cache_data(ttl=3600)
+def get_hist_data():
     results = {}
-    for t in tickers:
+    for t in acoes_config.keys():
         try:
             tk = yf.Ticker(t)
-            h = tk.history(period="10y")
-            results[t] = {'p': h['Close'].iloc[-1] if not h.empty else None, 'h': h}
-        except: results[t] = {'p': None, 'h': pd.DataFrame()}
+            results[t] = tk.history(period="2y")
+        except:
+            results[t] = pd.DataFrame()
     return results
 
-market_data = get_data()
+market_hist = get_hist_data()
 
-# 5. Cards (Com proteção contra KeyError)
-calculos = []
+# 3. INTERFACE
 cols = st.columns(len(acoes_config))
-for i, ticker in enumerate(acoes_config.keys()):
-    conf = acoes_config[ticker]
-    # Proteção: acessa o market_data de forma segura
-    ticker_data = market_data.get(ticker, {'p': None})
-    price = ticker_data.get('p') or conf['price']
+for i, (ticker, conf) in enumerate(acoes_config.items()):
+    # FORÇA O USO DO PREÇO DO DICIONÁRIO
+    price = conf['price']
     
-    if conf['tipo'] == 'Acao':
-        t_bazin = (conf['lpa'] * conf['payout']) / yield_alvo_br
-        t_secundario = math.sqrt(max(0, 22.5 * conf['lpa'] * conf['vpa']))
-        nome_secundario = "Graham"
-        peso_b = 0.8 if ticker in ['CXSE3.SA', 'SAPR4.SA'] else 0.5
-        teto = (t_bazin * peso_b) + (t_secundario * (1 - peso_b))
-    elif conf['tipo'] == 'REIT':
-        t_bazin = conf['dpa'] / yield_alvo_us
-        t_secundario = conf['ffo'] * 22.0
-        nome_secundario = "FFO x22"
-        peso_b = 0.5
-        teto = (t_bazin * peso_b) + (t_secundario * (1 - peso_b))
-        
-    margem = ((teto - price) / teto) * 100
-    calculos.append({'t': ticker, 'm': margem, 'p': price, 'moeda': conf['moeda']})
-
     with cols[i]:
-        st.markdown(f"""
-            <div class="card-equity">
-                <img src="{conf['logo']}" style="max-width:100px; height:40px; margin:auto; object-fit:contain;">
-                <div class="label-text" style="margin-top:10px;">{ticker}</div>
-                <div style="font-size:22px; font-weight:700;">{conf['moeda']} {price:.2f}</div>
-                <span class="{"badge-buy" if margem > 0 else "badge-wait"}">
-                    {margem:.1f}%
-                </span>
-                <div style="margin-top:15px; text-align: left; background: #fdfdfd; padding: 10px; border-radius: 10px; font-size:12px;">
-                    Bazin: <b>{conf['moeda']} {t_bazin:.2f}</b><br>
-                    {nome_secundario}: <b>{conf['moeda']} {t_secundario:.2f}</b><br>
-                    Teto: <b style="color:#1e3a8a">{conf['moeda']} {teto:.2f}</b>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
+        st.metric(ticker, f"R$ {price:.2f}")
 
-# 6. Aporte e Gráfico (Mantidos)
-# ... (restante do código)
+# 4. GRÁFICOS (PROTEGIDOS)
+st.markdown("---")
+target = st.selectbox("Selecione o ativo:", list(acoes_config.keys()))
+if target in market_hist and not market_hist[target].empty:
+    fig = go.Figure(go.Scatter(x=market_hist[target].index, y=market_hist[target]['Close']))
+    fig.update_layout(title=f"Histórico {target}", height=300)
+    st.plotly_chart(fig, use_container_width=True)
+else:
+    st.warning("Sem dados históricos para este ativo no Yahoo.")
