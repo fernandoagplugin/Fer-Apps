@@ -7,7 +7,7 @@ import math
 LOGO_SIDEBAR = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5931da579a81ef961da034476ec3b8e82e/EquityDash%20Logo.png"
 LOGO_HEADER = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5931da579a81ef961da034476ec3b8e82e/EquityDash%20Horizontal.png"
 
-st.set_page_config(page_title="EquityDash Ultra v7.6", page_icon=LOGO_SIDEBAR, layout="wide")
+st.set_page_config(page_title="EquityDash Ultra v7.7", page_icon=LOGO_SIDEBAR, layout="wide")
 
 # --- CSS Profissional ---
 st.markdown(f"""
@@ -34,7 +34,7 @@ st.markdown(f"""
 st.sidebar.image(LOGO_SIDEBAR, use_container_width=True)
 st.markdown(f'<div class="main-header"><img src="{LOGO_HEADER}" class="header-logo"></div>', unsafe_allow_html=True)
 
-# 2. Ativos (Ticker corrigido para PSSA3.SA)
+# 2. Ativos (PSSA3.SA para Porto Seguro)
 acoes_config = {
     'AXIA3.SA': {'cor': '#3bb54a', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/AXIA.png"},
     'CPLE3.SA': {'cor': '#2d3e50', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/COPEL.png"},
