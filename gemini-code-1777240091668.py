@@ -7,7 +7,7 @@ import math
 LOGO_SIDEBAR = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5931da579a81ef961da034476ec3b8e82e/EquityDash%20Logo.png"
 LOGO_HEADER = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5931da579a81ef961da034476ec3b8e82e/EquityDash%20Horizontal.png"
 
-st.set_page_config(page_title="EquityDash Ultra v7.7", page_icon=LOGO_SIDEBAR, layout="wide")
+st.set_page_config(page_title="EquityDash Ultra v7.8", page_icon=LOGO_SIDEBAR, layout="wide")
 
 # --- CSS Profissional ---
 st.markdown(f"""
@@ -34,7 +34,7 @@ st.markdown(f"""
 st.sidebar.image(LOGO_SIDEBAR, use_container_width=True)
 st.markdown(f'<div class="main-header"><img src="{LOGO_HEADER}" class="header-logo"></div>', unsafe_allow_html=True)
 
-# 2. Ativos (PSSA3.SA para Porto Seguro)
+# 2. Ativos
 acoes_config = {
     'AXIA3.SA': {'cor': '#3bb54a', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/AXIA.png"},
     'CPLE3.SA': {'cor': '#2d3e50', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/COPEL.png"},
@@ -115,7 +115,7 @@ for i, ticker in enumerate(acoes_config.keys()):
         teto = (t_bazin * peso_b) + (t_graham * (1 - peso_b))
         
         margem = ((teto - price) / teto) * 100 if teto > 0 else 0
-        badge_html = f'<span class="{"badge-buy" if margem > 0 else "badge-wait"}">{margem:.1f}%</span>'
+        badge_html = f'<span class="badge-buy">{margem:.1f}%</span>' if margem > 0 else f'<span class="badge-wait">{margem:.1f}%</span>'
         
         # IPCA+ (Earnings Yield)
         ey_real = (lpa / price) * 100
@@ -123,56 +123,53 @@ for i, ticker in enumerate(acoes_config.keys()):
         cor_spread = "#15803d" if spread_ntnb >= 0 else "#b91c1c"
         sinal_spread = "+" if spread_ntnb >= 0 else ""
         
-        # Múltiplos instantâneos
+        # Múltiplos
         pl = price / lpa if lpa > 0 else 0
         pvp = price / vpa if vpa > 0 else 0
         
-        box_base_html = f"""
-            <div class="box-base">
-                <div style="font-weight:700; color:#334155; margin-bottom:4px; border-bottom:1px solid #e2e8f0; padding-bottom:2px;">
-                    📋 Métricas Base
-                </div>
-                <div class="grid-base">
-                    <div>LPA: <b>R$ {lpa:.2f}</b></div>
-                    <div>VPA: <b>R$ {vpa:.2f}</b></div>
-                    <div>Provento 12M: <b>R$ {div_pagos:.2f}</b></div>
-                    <div>P/L: <b>{pl:.1f}x</b> | P/VP: <b>{pvp:.2f}x</b></div>
-                </div>
-            </div>
-        """
-        
-        box_ipca_html = f"""
-            <div class="box-ipca">
-                <div style="color: #0369a1; font-weight: 700; margin-bottom: 1px;">📊 Retorno Implícito</div>
-                <div style="font-size: 12px; font-weight: 700; color: #0f172a;">IPCA + {ey_real:.2f}%</div>
-                <div style="color: {cor_spread}; font-size: 10px; font-weight: 600; margin-top: 2px;">
-                    {sinal_spread}{spread_ntnb:.2f}% vs NTN-B
-                </div>
-            </div>
-        """
+        card_html = f"""<div class="card-equity">
+<div>
+<img src="{conf['logo']}" style="max-width:100px; height:38px; margin:auto; object-fit:contain;">
+<div class="label-text" style="margin-top:8px;">{ticker}</div>
+<div style="font-size:20px; font-weight:700;">R$ {price:.2f}</div>
+{badge_html}
+</div>
+<div>
+<div style="margin-top:10px; text-align: left; background: #fdfdfd; padding: 6px 8px; border-radius: 8px; font-size:11px; border:1px solid #f1f5f9;">
+Bazin: <b>R$ {t_bazin:.2f}</b><br>
+Graham: <b>R$ {t_graham:.2f}</b><br>
+Teto: <b style="color:#1e3a8a">R$ {teto:.2f}</b>
+</div>
+<div class="box-base">
+<div style="font-weight:700; color:#334155; margin-bottom:4px; border-bottom:1px solid #e2e8f0; padding-bottom:2px;">📋 Métricas Base</div>
+<div class="grid-base">
+<div>LPA: <b>R$ {lpa:.2f}</b></div>
+<div>VPA: <b>R$ {vpa:.2f}</b></div>
+<div>Provento 12M: <b>R$ {div_pagos:.2f}</b></div>
+<div>P/L: <b>{pl:.1f}x</b> | P/VP: <b>{pvp:.2f}x</b></div>
+</div>
+</div>
+<div class="box-ipca">
+<div style="color: #0369a1; font-weight: 700; margin-bottom: 1px;">📊 Retorno Implícito</div>
+<div style="font-size: 12px; font-weight: 700; color: #0f172a;">IPCA + {ey_real:.2f}%</div>
+<div style="color: {cor_spread}; font-size: 10px; font-weight: 600; margin-top: 2px;">{sinal_spread}{spread_ntnb:.2f}% vs NTN-B</div>
+</div>
+</div>
+</div>"""
+
     else:
-        t_bazin = t_graham = teto = margem = 0
-        badge_html = '<span class="badge-error">Sem Dados</span>'
-        box_base_html = '<div class="box-base" style="color:#64748b;">Aguardando dados...</div>'
-        box_ipca_html = '<div class="box-ipca" style="color:#64748b;">Aguardando preço...</div>'
+        card_html = f"""<div class="card-equity">
+<div>
+<img src="{conf['logo']}" style="max-width:100px; height:38px; margin:auto; object-fit:contain;">
+<div class="label-text" style="margin-top:8px;">{ticker}</div>
+<div style="font-size:20px; font-weight:700;">R$ 0.00</div>
+<span class="badge-error">Sem Dados</span>
+</div>
+<div>
+<div class="box-base" style="color:#64748b;">Aguardando dados...</div>
+<div class="box-ipca" style="color:#64748b;">Aguardando preço...</div>
+</div>
+</div>"""
 
     with cols[i]:
-        st.markdown(f"""
-            <div class="card-equity">
-                <div>
-                    <img src="{conf['logo']}" style="max-width:100px; height:38px; margin:auto; object-fit:contain;">
-                    <div class="label-text" style="margin-top:8px;">{ticker}</div>
-                    <div style="font-size:20px; font-weight:700;">R$ {price:.2f}</div>
-                    {badge_html}
-                </div>
-                <div>
-                    <div style="margin-top:10px; text-align: left; background: #fdfdfd; padding: 6px 8px; border-radius: 8px; font-size:11px; border:1px solid #f1f5f9;">
-                        Bazin: <b>R$ {t_bazin:.2f}</b><br>
-                        Graham: <b>R$ {t_graham:.2f}</b><br>
-                        Teto: <b style="color:#1e3a8a">R$ {teto:.2f}</b>
-                    </div>
-                    {box_base_html}
-                    {box_ipca_html}
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
+        st.markdown(card_html, unsafe_allow_html=True)
