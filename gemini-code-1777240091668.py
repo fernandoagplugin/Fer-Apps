@@ -7,7 +7,7 @@ import math
 LOGO_SIDEBAR = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5931da579a81ef961da034476ec3b8e82e/EquityDash%20Logo.png"
 LOGO_HEADER = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5931da579a81ef961da034476ec3b8e82e/EquityDash%20Horizontal.png"
 
-st.set_page_config(page_title="EquityDash Ultra v7.3", page_icon=LOGO_SIDEBAR, layout="wide")
+st.set_page_config(page_title="EquityDash Ultra v7.4", page_icon=LOGO_SIDEBAR, layout="wide")
 
 # --- CSS Profissional ---
 st.markdown(f"""
@@ -34,15 +34,14 @@ st.markdown(f"""
 st.sidebar.image(LOGO_SIDEBAR, use_container_width=True)
 st.markdown(f'<div class="main-header"><img src="{LOGO_HEADER}" class="header-logo"></div>', unsafe_allow_html=True)
 
-# 2. Ativos
+# 2. Ativos (PSSE3.SA atualizada com o link correto do seu GitHub)
 acoes_config = {
     'AXIA3.SA': {'cor': '#3bb54a', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/AXIA.png"},
     'CPLE3.SA': {'cor': '#2d3e50', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/COPEL.png"},
     'CXSE3.SA': {'cor': '#005ca9', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/Caixa.png"},
     'ITSA4.SA': {'cor': '#ec7000', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/Itausa.png"},
-    'SAPR4.SA': {'cor': '#009fe3', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0dd7c40bf47a5487a468aeaca985451e8d24cc6a/Sanepar.PNG"},
     'BRBI11.SA': {'cor': '#1e3a8a', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/main/BR%20Partners.png"},
-    'SBSP3.SA': {'cor': '#0284c7', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/main/Sabesp.png"}
+    'SBSP3.SA': {'cor': '#0284c7', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/main/Sabesp.png"},
     'PSSE3.SA': {'cor': '#0047bb', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/main/porto-seguro.png"}
 }
 
@@ -87,7 +86,7 @@ def get_live_data():
 
 market_data = get_live_data()
 
-# 5. Cards Completo com Métricas Base
+# 5. Renderização dos Cards
 cols = st.columns(len(acoes_config))
 
 for i, ticker in enumerate(acoes_config.keys()):
@@ -103,7 +102,9 @@ for i, ticker in enumerate(acoes_config.keys()):
         # Valuation
         t_bazin = div_pagos / yield_alvo_br if yield_alvo_br > 0 else 0
         t_graham = math.sqrt(max(0, 22.5 * lpa * vpa))
-        peso_b = 0.8 if ticker in ['CXSE3.SA', 'SAPR4.SA', 'CPLE3.SA', 'SBSP3.SA'] else 0.5
+        
+        # Ativos defensivos/seguros/utilidades recebem peso 0.8 para Bazin
+        peso_b = 0.8 if ticker in ['CXSE3.SA', 'PSSE3.SA', 'CPLE3.SA', 'SBSP3.SA'] else 0.5
         teto = (t_bazin * peso_b) + (t_graham * (1 - peso_b))
         
         margem = ((teto - price) / teto) * 100 if teto > 0 else 0
