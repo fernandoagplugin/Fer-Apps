@@ -27,15 +27,15 @@ st.markdown(f"""
 st.sidebar.image(LOGO_SIDEBAR, use_container_width=True)
 st.markdown(f'<div class="main-header"><img src="{LOGO_HEADER}" class="header-logo"></div>', unsafe_allow_html=True)
 
-# 2. Ativos
+# 2. Ativos (Logos BRBI11 e SBSP3 atualizados via link RAW)
 acoes_config = {
     'AXIA3.SA': {'cor': '#3bb54a', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/AXIA.png"},
     'CPLE3.SA': {'cor': '#2d3e50', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/COPEL.png"},
     'CXSE3.SA': {'cor': '#005ca9', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/Caixa.png"},
     'ITSA4.SA': {'cor': '#ec7000', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/Itausa.png"},
     'SAPR4.SA': {'cor': '#009fe3', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0dd7c40bf47a5487a468aeaca985451e8d24cc6a/Sanepar.PNG"},
-    'BRBI11.SA': {'cor': '#1e3a8a', 'logo': "https://placehold.co/100x40/f8f9fa/64748b?text=BRBI11"},
-    'SBSP3.SA': {'cor': '#0284c7', 'logo': "https://placehold.co/100x40/f8f9fa/64748b?text=SBSP3"}
+    'BRBI11.SA': {'cor': '#1e3a8a', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/main/BR%20Partners.png"},
+    'SBSP3.SA': {'cor': '#0284c7', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/main/Sabesp.png"}
 }
 
 # 3. Sidebar - Apenas Filtros
@@ -43,7 +43,7 @@ st.sidebar.title("⚙️ Filtros de Valuation")
 yield_valor_br = st.sidebar.select_slider("Yield Alvo BR (Bazin) %", options=[round(x*0.1, 1) for x in range(60, 125, 5)], value=6.0)
 yield_alvo_br = yield_valor_br / 100
 
-# 4. Engine de Dados Mais Robusta
+# 4. Engine de Dados
 @st.cache_data(ttl=600)
 def get_live_data():
     tickers = list(acoes_config.keys())
@@ -68,7 +68,7 @@ def get_live_data():
             else:
                 divs_12m = 0
                 
-            # Dados de Balanço (LPA e VPA) - Yahoo costuma falhar aqui para BR
+            # Dados de Balanço (LPA e VPA)
             info = tk.info
             lpa = info.get('trailingEps') or info.get('forwardEps') or 0
             vpa = info.get('bookValue') or 0
