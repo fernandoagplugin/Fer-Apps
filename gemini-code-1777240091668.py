@@ -43,6 +43,7 @@ acoes_config = {
     'SAPR4.SA': {'cor': '#009fe3', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0dd7c40bf47a5487a468aeaca985451e8d24cc6a/Sanepar.PNG"},
     'BRBI11.SA': {'cor': '#1e3a8a', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/main/BR%20Partners.png"},
     'SBSP3.SA': {'cor': '#0284c7', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/main/Sabesp.png"}
+    'PSSE3.SA': {'cor': '#0047bb', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/main/porto-seguro.png"}
 }
 
 # 3. Sidebar
