@@ -7,7 +7,7 @@ import math
 LOGO_SIDEBAR = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5931da579a81ef961da034476ec3b8e82e/EquityDash%20Logo.png"
 LOGO_HEADER = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5931da579a81ef961da034476ec3b8e82e/EquityDash%20Horizontal.png"
 
-st.set_page_config(page_title="EquityDash Ultra v7.4", page_icon=LOGO_SIDEBAR, layout="wide")
+st.set_page_config(page_title="EquityDash Ultra v7.5", page_icon=LOGO_SIDEBAR, layout="wide")
 
 # --- CSS Profissional ---
 st.markdown(f"""
@@ -34,7 +34,7 @@ st.markdown(f"""
 st.sidebar.image(LOGO_SIDEBAR, use_container_width=True)
 st.markdown(f'<div class="main-header"><img src="{LOGO_HEADER}" class="header-logo"></div>', unsafe_allow_html=True)
 
-# 2. Ativos (PSSE3.SA atualizada com o link correto do seu GitHub)
+# 2. Ativos
 acoes_config = {
     'AXIA3.SA': {'cor': '#3bb54a', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/AXIA.png"},
     'CPLE3.SA': {'cor': '#2d3e50', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/COPEL.png"},
@@ -77,6 +77,15 @@ def get_live_data():
             info = tk.info
             lpa = info.get('trailingEps') or info.get('forwardEps') or 0
             vpa = info.get('bookValue') or 0
+            
+            # Ajuste de UNIT (Ex: BRBI11 é composto por 3 ações: 1 ON + 2 PN)
+            # Se a API trouxer o LPA por ação individual em vez de por UNIT, ajustamos multiplicando por 3
+            if t == 'BRBI11.SA':
+                pe_ratio = info.get('trailingPE', 0)
+                if pe_ratio > 0 and (preco / lpa) > 20: 
+                    # Se o P/L der irrealisticamente alto devido à fracionamento de Unit no Yahoo
+                    lpa = lpa * 3
+                    vpa = vpa * 3
             
             results[t] = {'p': preco, 'lpa': lpa, 'vpa': vpa, 'div_pagos': divs_12m}
         except Exception: 
