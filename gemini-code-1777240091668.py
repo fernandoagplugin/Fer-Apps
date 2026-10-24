@@ -7,7 +7,7 @@ import math
 LOGO_SIDEBAR = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5931da579a81ef961da034476ec3b8e82e/EquityDash%20Logo.png"
 LOGO_HEADER = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5931da579a81ef961da034476ec3b8e82e/EquityDash%20Horizontal.png"
 
-st.set_page_config(page_title="EquityDash Ultra v7.9", page_icon=LOGO_SIDEBAR, layout="wide")
+st.set_page_config(page_title="EquityDash Ultra v7.10", page_icon=LOGO_SIDEBAR, layout="wide")
 
 # --- CSS Profissional ---
 st.markdown(f"""
@@ -34,15 +34,15 @@ st.markdown(f"""
 st.sidebar.image(LOGO_SIDEBAR, use_container_width=True)
 st.markdown(f'<div class="main-header"><img src="{LOGO_HEADER}" class="header-logo"></div>', unsafe_allow_html=True)
 
-# 2. Ativos Atualizados (Com VALE3 e TIMS3, sem BRBI11 e SBSP3)
+# 2. Ativos Atualizados (Com VALE3 e TIMS3 com logos RAW do GitHub, sem BRBI11 e SBSP3)
 acoes_config = {
     'AXIA3.SA': {'cor': '#3bb54a', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/AXIA.png"},
     'CPLE3.SA': {'cor': '#2d3e50', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/COPEL.png"},
     'CXSE3.SA': {'cor': '#005ca9', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/Caixa.png"},
     'ITSA4.SA': {'cor': '#ec7000', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/Itausa.png"},
     'PSSA3.SA': {'cor': '#0047bb', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/main/porto-seguro.png"},
-    'VALE3.SA': {'cor': '#003366', 'logo': "https://placehold.co/100x40/f8f9fa/64748b?text=VALE3"},
-    'TIMS3.SA': {'cor': '#002f6c', 'logo': "https://placehold.co/100x40/f8f9fa/64748b?text=TIMS3"}
+    'VALE3.SA': {'cor': '#003366', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/b8d8683f36e3b1ebacbd6c99dec0065cd65b8ddd/VALE.png"},
+    'TIMS3.SA': {'cor': '#002f6c', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/b8d8683f36e3b1ebacbd6c99dec0065cd65b8ddd/TIM.png"}
 }
 
 # 3. Sidebar
@@ -103,7 +103,7 @@ for i, ticker in enumerate(acoes_config.keys()):
         t_bazin = div_pagos / yield_alvo_br if yield_alvo_br > 0 else 0
         t_graham = math.sqrt(max(0, 22.5 * lpa * vpa))
         
-        # Ativos defensivos/seguros/utilidades/commodities sólidas com peso 0.8 para Bazin
+        # Ativos defensivos/pagadores de dividendo recebem peso 0.8 para Bazin
         peso_b = 0.8 if ticker in ['CXSE3.SA', 'PSSA3.SA', 'CPLE3.SA', 'VALE3.SA', 'TIMS3.SA'] else 0.5
         teto = (t_bazin * peso_b) + (t_graham * (1 - peso_b))
         
