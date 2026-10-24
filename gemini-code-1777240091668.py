@@ -7,7 +7,7 @@ import math
 LOGO_SIDEBAR = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5931da579a81ef961da034476ec3b8e82e/EquityDash%20Logo.png"
 LOGO_HEADER = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5931da579a81ef961da034476ec3b8e82e/EquityDash%20Horizontal.png"
 
-st.set_page_config(page_title="EquityDash Ultra v7.8", page_icon=LOGO_SIDEBAR, layout="wide")
+st.set_page_config(page_title="EquityDash Ultra v7.9", page_icon=LOGO_SIDEBAR, layout="wide")
 
 # --- CSS Profissional ---
 st.markdown(f"""
@@ -34,15 +34,15 @@ st.markdown(f"""
 st.sidebar.image(LOGO_SIDEBAR, use_container_width=True)
 st.markdown(f'<div class="main-header"><img src="{LOGO_HEADER}" class="header-logo"></div>', unsafe_allow_html=True)
 
-# 2. Ativos
+# 2. Ativos Atualizados (Com VALE3 e TIMS3, sem BRBI11 e SBSP3)
 acoes_config = {
     'AXIA3.SA': {'cor': '#3bb54a', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/AXIA.png"},
     'CPLE3.SA': {'cor': '#2d3e50', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/COPEL.png"},
     'CXSE3.SA': {'cor': '#005ca9', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/Caixa.png"},
     'ITSA4.SA': {'cor': '#ec7000', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/Itausa.png"},
-    'BRBI11.SA': {'cor': '#1e3a8a', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/main/BR%20Partners.png"},
-    'SBSP3.SA': {'cor': '#0284c7', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/main/Sabesp.png"},
-    'PSSA3.SA': {'cor': '#0047bb', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/main/porto-seguro.png"}
+    'PSSA3.SA': {'cor': '#0047bb', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/main/porto-seguro.png"},
+    'VALE3.SA': {'cor': '#003366', 'logo': "https://placehold.co/100x40/f8f9fa/64748b?text=VALE3"},
+    'TIMS3.SA': {'cor': '#002f6c', 'logo': "https://placehold.co/100x40/f8f9fa/64748b?text=TIMS3"}
 }
 
 # 3. Sidebar
@@ -78,13 +78,6 @@ def get_live_data():
             lpa = info.get('trailingEps') or info.get('forwardEps') or 0
             vpa = info.get('bookValue') or 0
             
-            # Ajuste de UNIT (BRBI11 é composto por 3 ações)
-            if t == 'BRBI11.SA':
-                pe_ratio = info.get('trailingPE', 0)
-                if pe_ratio > 0 and (preco / lpa) > 20: 
-                    lpa = lpa * 3
-                    vpa = vpa * 3
-            
             results[t] = {'p': preco, 'lpa': lpa, 'vpa': vpa, 'div_pagos': divs_12m}
         except Exception: 
             results[t] = {'p': 0, 'lpa': 0, 'vpa': 0, 'div_pagos': 0}
@@ -110,8 +103,8 @@ for i, ticker in enumerate(acoes_config.keys()):
         t_bazin = div_pagos / yield_alvo_br if yield_alvo_br > 0 else 0
         t_graham = math.sqrt(max(0, 22.5 * lpa * vpa))
         
-        # Ativos defensivos/seguros/utilidades recebem peso 0.8 para Bazin
-        peso_b = 0.8 if ticker in ['CXSE3.SA', 'PSSA3.SA', 'CPLE3.SA', 'SBSP3.SA'] else 0.5
+        # Ativos defensivos/seguros/utilidades/commodities sólidas com peso 0.8 para Bazin
+        peso_b = 0.8 if ticker in ['CXSE3.SA', 'PSSA3.SA', 'CPLE3.SA', 'VALE3.SA', 'TIMS3.SA'] else 0.5
         teto = (t_bazin * peso_b) + (t_graham * (1 - peso_b))
         
         margem = ((teto - price) / teto) * 100 if teto > 0 else 0
