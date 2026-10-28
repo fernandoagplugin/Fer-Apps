@@ -7,7 +7,7 @@ import math
 LOGO_SIDEBAR = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5931da579a81ef961da034476ec3b8e82e/EquityDash%20Logo.png"
 LOGO_HEADER = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5931da579a81ef961da034476ec3b8e82e/EquityDash%20Horizontal.png"
 
-st.set_page_config(page_title="EquityDash Ultra v7.11", page_icon=LOGO_SIDEBAR, layout="wide")
+st.set_page_config(page_title="EquityDash Ultra v7.12", page_icon=LOGO_SIDEBAR, layout="wide")
 
 # --- CSS Profissional ---
 st.markdown(f"""
@@ -54,7 +54,7 @@ st.sidebar.markdown("---")
 st.sidebar.title("🏛️ Renda Fixa (Benchmark)")
 taxa_ntnb = st.sidebar.number_input("Tesouro IPCA+ 10 Anos (%)", min_value=0.0, max_value=15.0, value=6.20, step=0.1)
 
-# 4. Engine de Dados Blindada (Com tratamento individual por ativo)
+# 4. Engine de Dados Inteligente com Fallback
 @st.cache_data(ttl=600)
 def get_live_data():
     tickers = list(acoes_config.keys())
@@ -66,29 +66,29 @@ def get_live_data():
         try:
             tk = yf.Ticker(t)
             
-            # Tentar pegar o histórico de preços recentes
+            # Histórico de preços
             hist = tk.history(period="5d")
             if not hist.empty:
                 preco = hist['Close'].iloc[-1]
             
-            # Tentar pegar dividendos dos últimos 12 meses
+            # Dividendos dos últimos 12 meses
             divs = tk.dividends
             if not divs.empty:
                 divs.index = pd.to_datetime(divs.index, utc=True)
                 divs_12m = divs[divs.index >= um_ano_atras].sum()
                 
-            # Tentar pegar informações fundamentais
+            # Informações fundamentais
             info = tk.info
-            lpa = info.get('trailingEps') or info.get('forwardEps') or 0
+            lpa = info.get('trailingEps') or info.get('epsTrailingTwelveMonths') or info.get('forwardEps') or 0
             vpa = info.get('bookValue') or 0
             
-            # Fallback caso o yfinance falhe em retornar o LPA mas traga o P/L
+            # Fallback inteligente para LPA via P/L caso venha zero
             if lpa == 0 and preco > 0:
-                pe = info.get('trailingPE')
+                pe = info.get('trailingPE') or info.get('forwardPE')
                 if pe and pe > 0:
                     lpa = preco / pe
                     
-            # Fallback para VPA caso venha zero
+            # Fallback inteligente para VPA via P/VP caso venha zero
             if vpa == 0 and preco > 0:
                 pb = info.get('priceToBook')
                 if pb and pb > 0:
@@ -116,11 +116,11 @@ for i, ticker in enumerate(acoes_config.keys()):
     div_pagos = dados['div_pagos']
     
     if price > 0 and (lpa > 0 or vpa > 0 or div_pagos > 0):
-        # Valuation (Tratando caso o LPA ou VPA venham zerados isoladamente para não quebrar Graham/Bazin)
+        # Valuation Híbrido
         t_bazin = (div_pagos / yield_alvo_br) if (yield_alvo_br > 0 and div_pagos > 0) else 0
         t_graham = math.sqrt(max(0, 22.5 * lpa * vpa)) if (lpa > 0 and vpa > 0) else 0
         
-        # Pesos para o Preço Teto Híbrido
+        # Pesos para o Preço Teto Híbrido (0.8 para defensivos/commodities sólidas)
         peso_b = 0.8 if ticker in ['CXSE3.SA', 'PSSA3.SA', 'CPLE3.SA', 'VALE3.SA', 'TIMS3.SA'] else 0.5
         
         if t_bazin > 0 and t_graham > 0:
