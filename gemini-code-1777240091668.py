@@ -40,9 +40,7 @@ acoes_config = {
     'CPLE3.SA': {'cor': '#2d3e50', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/COPEL.png"},
     'CXSE3.SA': {'cor': '#005ca9', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/Caixa.png"},
     'ITSA4.SA': {'cor': '#ec7000', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/Itausa.png"},
-    'PSSA3.SA': {'cor': '#0047bb', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/main/porto-seguro.png"},
-    'VALE3.SA': {'cor': '#003366', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/b8d8683f36e3b1ebacbd6c99dec0065cd65b8ddd/VALE.png"},
-    'TIMS3.SA': {'cor': '#002f6c', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/b8d8683f36e3b1ebacbd6c99dec0065cd65b8ddd/TIM.png"}
+    'PSSA3.SA': {'cor': '#0047bb', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/main/porto-seguro.png"}, 
 }
 
 # 3. Sidebar
