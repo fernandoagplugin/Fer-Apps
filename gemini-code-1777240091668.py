@@ -3,30 +3,33 @@ import yfinance as yf
 import pandas as pd
 import math
 
-# 1. Configurações da Página (Layout Wide adaptativo)
+# 1. Configurações da Página
 LOGO_SIDEBAR = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5931da579a81ef961da034476ec3b8e82e/EquityDash%20Logo.png"
 LOGO_HEADER = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5931da579a81ef961da034476ec3b8e82e/EquityDash%20Horizontal.png"
 
-st.set_page_config(page_title="EquityDash Ultra v7.14", page_icon=LOGO_SIDEBAR, layout="wide")
+st.set_page_config(page_title="EquityDash Ultra v7.15", page_icon=LOGO_SIDEBAR, layout="wide")
 
-# --- CSS Profissional & Responsivo para Celular ---
+# --- CSS Profissional & Padronizado ---
 st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
     html, body, [class*="css"] {{ font-family: 'Inter', sans-serif; background-color: #f8f9fa; }}
     .main-header {{ background-color: #20B2AA; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 25px; }}
     .header-logo {{ width: 100%; max-width: 500px; height: auto; display: block; margin: 0 auto; }}
-    .card-equity {{ background: white; padding: 16px; border-radius: 20px; border: 1px solid #eef2f6; box-shadow: 0 4px 12px rgba(0,0,0,0.03); text-align: center; height: 100%; display: flex; flex-direction: column; justify-content: space-between; margin-bottom: 16px; }}
-    .badge-buy {{ background-color: #dcfce7; color: #15803d; padding: 4px 10px; border-radius: 12px; font-weight: 700; font-size: 11px; }}
-    .badge-wait {{ background-color: #fef3c7; color: #92400e; padding: 4px 10px; border-radius: 12px; font-weight: 700; font-size: 11px; }}
-    .badge-error {{ background-color: #fee2e2; color: #991b1b; padding: 4px 10px; border-radius: 12px; font-weight: 700; font-size: 11px; }}
+    
+    /* Cartões perfeitamente alinhados e de mesma altura */
+    .card-equity {{ background: white; padding: 14px; border-radius: 20px; border: 1px solid #eef2f6; box-shadow: 0 4px 12px rgba(0,0,0,0.03); text-align: center; display: flex; flex-direction: column; justify-content: space-between; height: 440px; margin-bottom: 15px; }}
+    
+    .badge-buy {{ background-color: #dcfce7; color: #15803d; padding: 4px 10px; border-radius: 12px; font-weight: 700; font-size: 11px; display: inline-block; margin-top: 4px; }}
+    .badge-wait {{ background-color: #fef3c7; color: #92400e; padding: 4px 10px; border-radius: 12px; font-weight: 700; font-size: 11px; display: inline-block; margin-top: 4px; }}
+    .badge-error {{ background-color: #fee2e2; color: #991b1b; padding: 4px 10px; border-radius: 12px; font-weight: 700; font-size: 11px; display: inline-block; margin-top: 4px; }}
     .label-text {{ color: #64748b; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }}
     
     /* Box IPCA */
-    .box-ipca {{ background: #f0f9ff; border-left: 4px solid #0284c7; padding: 8px 10px; border-radius: 8px; margin-top: 10px; font-size: 11px; text-align: left; }}
+    .box-ipca {{ background: #f0f9ff; border-left: 4px solid #0284c7; padding: 6px 8px; border-radius: 8px; margin-top: 6px; font-size: 11px; text-align: left; }}
     
     /* Box Métricas Base */
-    .box-base {{ background: #f8fafc; border: 1px solid #e2e8f0; padding: 8px; border-radius: 8px; margin-top: 8px; font-size: 10px; text-align: left; }}
+    .box-base {{ background: #f8fafc; border: 1px solid #e2e8f0; padding: 6px 8px; border-radius: 8px; margin-top: 6px; font-size: 10px; text-align: left; }}
     .grid-base {{ display: grid; grid-template-columns: 1fr 1fr; gap: 4px; color: #475569; }}
     </style>
     """, unsafe_allow_html=True)
@@ -34,7 +37,7 @@ st.markdown(f"""
 st.sidebar.image(LOGO_SIDEBAR, use_container_width=True)
 st.markdown(f'<div class="main-header"><img src="{LOGO_HEADER}" class="header-logo"></div>', unsafe_allow_html=True)
 
-# 2. Ativos Configurados
+# 2. Ativos Configurados (Exatamente os 5 atuais)
 acoes_config = {
     'AXIA3.SA': {'cor': '#3bb54a', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/AXIA.png"},
     'CPLE3.SA': {'cor': '#2d3e50', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/COPEL.png"},
@@ -95,9 +98,8 @@ def get_live_data():
                 elif t == 'AXIA3.SA':
                     vpa = 41.92
                     
-            # Fallback para dividendos da AXIA3 caso o histórico venha vazio
             if divs_12m == 0 and t == 'AXIA3.SA':
-                divs_12m = 2.80  # Estimativa conservadora de proventos 12M se a API omitir
+                divs_12m = 2.80
 
         except Exception as e:
             print(f"Erro ao buscar {t}: {e}")
@@ -110,85 +112,78 @@ def get_live_data():
 
 market_data = get_live_data()
 
-tickers_list = list(acoes_config.keys())
-num_ativos = len(tickers_list)
+# 5. Renderização em 5 Colunas (Alinhamento perfeito e responsivo nativo do Streamlit)
+cols = st.columns(len(acoes_config))
 
-# 5. Renderização Responsiva (organiza em linhas de até 3 colunas no PC, adaptando-se perfeitamente no telemóvel)
-colunas_por_linha = 3
-
-for i in range(0, num_ativos, colunas_por_linha):
-    chunk = tickers_list[i:i + colunas_por_linha]
-    cols = st.columns(len(chunk))
+for i, ticker in enumerate(acoes_config.keys()):
+    conf = acoes_config[ticker]
+    dados = market_data[ticker]
     
-    for j, ticker in enumerate(chunk):
-        conf = acoes_config[ticker]
-        dados = market_data[ticker]
+    price = dados['p']
+    lpa = dados['lpa']
+    vpa = dados['vpa']
+    div_pagos = dados['div_pagos']
+    
+    if price > 0 and (lpa > 0 or vpa > 0 or div_pagos > 0):
+        t_bazin = (div_pagos / yield_alvo_br) if (yield_alvo_br > 0 and div_pagos > 0) else 0
+        t_graham = math.sqrt(max(0, 22.5 * lpa * vpa)) if (lpa > 0 and vpa > 0) else 0
         
-        price = dados['p']
-        lpa = dados['lpa']
-        vpa = dados['vpa']
-        div_pagos = dados['div_pagos']
+        peso_b = 0.8 if ticker in ['CXSE3.SA', 'PSSA3.SA', 'CPLE3.SA', 'AXIA3.SA'] else 0.5
         
-        if price > 0 and (lpa > 0 or vpa > 0 or div_pagos > 0):
-            t_bazin = (div_pagos / yield_alvo_br) if (yield_alvo_br > 0 and div_pagos > 0) else 0
-            t_graham = math.sqrt(max(0, 22.5 * lpa * vpa)) if (lpa > 0 and vpa > 0) else 0
+        if t_bazin > 0 and t_graham > 0:
+            teto = (t_bazin * peso_b) + (t_graham * (1 - peso_b))
+        elif t_bazin > 0:
+            teto = t_bazin
+        else:
+            teto = t_graham
             
-            peso_b = 0.8 if ticker in ['CXSE3.SA', 'PSSA3.SA', 'CPLE3.SA', 'AXIA3.SA'] else 0.5
-            
-            if t_bazin > 0 and t_graham > 0:
-                teto = (t_bazin * peso_b) + (t_graham * (1 - peso_b))
-            elif t_bazin > 0:
-                teto = t_bazin
-            else:
-                teto = t_graham
-                
-            margem = ((teto - price) / teto) * 100 if teto > 0 else 0
-            badge_html = f'<span class="badge-buy">{margem:.1f}%</span>' if margem > 0 else f'<span class="badge-wait">{margem:.1f}%</span>'
-            
-            ey_real = (lpa / price) * 100 if lpa > 0 and price > 0 else 0
-            spread_ntnb = ey_real - taxa_ntnb
-            cor_spread = "#15803d" if spread_ntnb >= 0 else "#b91c1c"
-            sinal_spread = "+" if spread_ntnb >= 0 else ""
-            
-            pl = price / lpa if lpa > 0 else 0
-            pvp = price / vpa if vpa > 0 else 0
-            
-            card_html = f"""<div class="card-equity">
+        margem = ((teto - price) / teto) * 100 if teto > 0 else 0
+        badge_html = f'<span class="badge-buy">{margem:.1f}%</span>' if margem > 0 else f'<span class="badge-wait">{margem:.1f}%</span>'
+        
+        ey_real = (lpa / price) * 100 if lpa > 0 and price > 0 else 0
+        spread_ntnb = ey_real - taxa_ntnb
+        cor_spread = "#15803d" if spread_ntnb >= 0 else "#b91c1c"
+        sinal_spread = "+" if spread_ntnb >= 0 else ""
+        
+        pl = price / lpa if lpa > 0 else 0
+        pvp = price / vpa if vpa > 0 else 0
+        
+        card_html = f"""<div class="card-equity">
 <div>
-<img src="{conf['logo']}" style="max-width:100px; height:38px; margin:auto; object-fit:contain;">
-<div class="label-text" style="margin-top:8px;">{ticker}</div>
-<div style="font-size:20px; font-weight:700;">R$ {price:.2f}</div>
+<img src="{conf['logo']}" style="max-width:90px; height:34px; margin:auto; object-fit:contain;">
+<div class="label-text" style="margin-top:6px;">{ticker}</div>
+<div style="font-size:18px; font-weight:700;">R$ {price:.2f}</div>
 {badge_html}
 </div>
 <div>
-<div style="margin-top:10px; text-align: left; background: #fdfdfd; padding: 6px 8px; border-radius: 8px; font-size:11px; border:1px solid #f1f5f9;">
+<div style="margin-top:6px; text-align: left; background: #fdfdfd; padding: 5px 6px; border-radius: 8px; font-size:10.5px; border:1px solid #f1f5f9;">
 Bazin: <b>R$ {t_bazin:.2f}</b><br>
 Graham: <b>R$ {t_graham:.2f}</b><br>
 Teto: <b style="color:#1e3a8a">R$ {teto:.2f}</b>
 </div>
 <div class="box-base">
-<div style="font-weight:700; color:#334155; margin-bottom:4px; border-bottom:1px solid #e2e8f0; padding-bottom:2px;">📋 Métricas Base</div>
+<div style="font-weight:700; color:#334155; margin-bottom:2px; border-bottom:1px solid #e2e8f0; padding-bottom:2px;">📋 Métricas Base</div>
 <div class="grid-base">
 <div>LPA: <b>R$ {lpa:.2f}</b></div>
 <div>VPA: <b>R$ {vpa:.2f}</b></div>
-<div>Provento 12M: <b>R$ {div_pagos:.2f}</b></div>
+<div>Prov 12M: <b>R$ {div_pagos:.2f}</b></div>
 <div>P/L: <b>{pl:.1f}x</b> | P/VP: <b>{pvp:.2f}x</b></div>
 </div>
 </div>
 <div class="box-ipca">
 <div style="color: #0369a1; font-weight: 700; margin-bottom: 1px;">📊 Retorno Implícito</div>
-<div style="font-size: 12px; font-weight: 700; color: #0f172a;">IPCA + {ey_real:.2f}%</div>
-<div style="color: {cor_spread}; font-size: 10px; font-weight: 600; margin-top: 2px;">{sinal_spread}{spread_ntnb:.2f}% vs NTN-B</div>
+<div style="font-size: 11px; font-weight: 700; color: #0f172a;">IPCA + {ey_real:.2f}%</div>
+<div style="color: {cor_spread}; font-size: 9.5px; font-weight: 600; margin-top: 1px;">{sinal_spread}{spread_ntnb:.2f}% vs NTN-B</div>
 </div>
 </div>
 </div>"""
 
-        else:
-            card_html = f"""<div class="card-equity">
+    else:
+        card_html = f"""<div class="card-equity">
 <div>
-<img src="{conf['logo']}" style="max-width:100px; height:38px; margin:auto; object-fit:contain;">
-<div class="label-text" style="margin-top:8px;">{ticker}</div>
-<div style="font-size:20px; font-weight:700;">R$ {price:.2f}</div>
+<img src="{conf['logo']}" style="max-width:90px; height:34px; margin:auto; object-fit:contain;">
+<div class="label-text" style="margin-top:6px;">{ticker}</div>
+<div style="font-size:18px; font-weight:700;">R$ {price:.2f}</div>
 <span class="badge-error">Sem Dados</span>
 </div>
 <div>
@@ -197,5 +192,5 @@ Teto: <b style="color:#1e3a8a">R$ {teto:.2f}</b>
 </div>
 </div>"""
 
-        with cols[j]:
-            st.markdown(card_html, unsafe_allow_html=True)
+    with cols[i]:
+        st.markdown(card_html, unsafe_allow_html=True)
