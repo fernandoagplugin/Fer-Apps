@@ -7,39 +7,54 @@ import math
 LOGO_SIDEBAR = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5931da579a81ef961da034476ec3b8e82e/EquityDash%20Logo.png"
 LOGO_HEADER = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5931da579a81ef961da034476ec3b8e82e/EquityDash%20Horizontal.png"
 
-st.set_page_config(page_title="EquityDash Ultra v7.16", page_icon=LOGO_SIDEBAR, layout="wide")
+st.set_page_config(page_title="EquityDash Ultra v7.17", page_icon=LOGO_SIDEBAR, layout="wide")
 
-# --- CSS Responsivo para Grelha estilo App Mobile ---
+# --- CSS Estilo App Mobile (Flexbox Responsivo) ---
 st.markdown(f"""
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-    html, body, [class*="css"] {{ font-family: 'Inter', sans-serif; background-color: #f8f9fa; }}
-    .main-header {{ background-color: #20B2AA; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 25px; }}
-    .header-logo {{ width: 100%; max-width: 500px; height: auto; display: block; margin: 0 auto; }}
-    
-    /* Grelha Responsiva Flexível: Perfeita para Telemóvel e PC */
-    .equity-grid {{
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-        gap: 16px;
-        margin-bottom: 20px;
-    }}
-    
-    .card-equity {{ background: white; padding: 14px; border-radius: 20px; border: 1px solid #eef2f6; box-shadow: 0 4px 12px rgba(0,0,0,0.03); text-align: center; display: flex; flex-direction: column; justify-content: space-between; height: 440px; }}
-    
-    .badge-buy {{ background-color: #dcfce7; color: #15803d; padding: 4px 10px; border-radius: 12px; font-weight: 700; font-size: 11px; display: inline-block; margin-top: 4px; }}
-    .badge-wait {{ background-color: #fef3c7; color: #92400e; padding: 4px 10px; border-radius: 12px; font-weight: 700; font-size: 11px; display: inline-block; margin-top: 4px; }}
-    .badge-error {{ background-color: #fee2e2; color: #991b1b; padding: 4px 10px; border-radius: 12px; font-weight: 700; font-size: 11px; display: inline-block; margin-top: 4px; }}
-    .label-text {{ color: #64748b; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }}
-    
-    /* Box IPCA */
-    .box-ipca {{ background: #f0f9ff; border-left: 4px solid #0284c7; padding: 6px 8px; border-radius: 8px; margin-top: 6px; font-size: 11px; text-align: left; }}
-    
-    /* Box Métricas Base */
-    .box-base {{ background: #f8fafc; border: 1px solid #e2e8f0; padding: 6px 8px; border-radius: 8px; margin-top: 6px; font-size: 10px; text-align: left; }}
-    .grid-base {{ display: grid; grid-template-columns: 1fr 1fr; gap: 4px; color: #475569; }}
-    </style>
-    """, unsafe_allow_html=True)
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+html, body, [class*="css"] {{ font-family: 'Inter', sans-serif; background-color: #f8f9fa; }}
+.main-header {{ background-color: #20B2AA; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 25px; }}
+.header-logo {{ width: 100%; max-width: 500px; height: auto; display: block; margin: 0 auto; }}
+
+/* Contentor Flexível estilo App Mobile */
+.mobile-container {{
+display: flex;
+flex-wrap: wrap;
+gap: 16px;
+justify-content: center;
+margin-bottom: 30px;
+}}
+
+.card-equity {{
+background: white;
+padding: 14px;
+border-radius: 20px;
+border: 1px solid #eef2f6;
+box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+text-align: center;
+display: flex;
+flex-direction: column;
+justify-content: space-between;
+width: 280px;
+height: 440px;
+flex-grow: 1;
+max-width: 320px;
+}}
+
+.badge-buy {{ background-color: #dcfce7; color: #15803d; padding: 4px 10px; border-radius: 12px; font-weight: 700; font-size: 11px; display: inline-block; margin-top: 4px; }}
+.badge-wait {{ background-color: #fef3c7; color: #92400e; padding: 4px 10px; border-radius: 12px; font-weight: 700; font-size: 11px; display: inline-block; margin-top: 4px; }}
+.badge-error {{ background-color: #fee2e2; color: #991b1b; padding: 4px 10px; border-radius: 12px; font-weight: 700; font-size: 11px; display: inline-block; margin-top: 4px; }}
+.label-text {{ color: #64748b; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }}
+
+/* Box IPCA */
+.box-ipca {{ background: #f0f9ff; border-left: 4px solid #0284c7; padding: 6px 8px; border-radius: 8px; margin-top: 6px; font-size: 11px; text-align: left; }}
+
+/* Box Métricas Base */
+.box-base {{ background: #f8fafc; border: 1px solid #e2e8f0; padding: 6px 8px; border-radius: 8px; margin-top: 6px; font-size: 10px; text-align: left; }}
+.grid-base {{ display: grid; grid-template-columns: 1fr 1fr; gap: 4px; color: #475569; }}
+</style>
+""", unsafe_allow_html=True)
 
 st.sidebar.image(LOGO_SIDEBAR, use_container_width=True)
 st.markdown(f'<div class="main-header"><img src="{LOGO_HEADER}" class="header-logo"></div>', unsafe_allow_html=True)
@@ -115,8 +130,8 @@ def get_live_data():
 
 market_data = get_live_data()
 
-# 5. Renderização via Grelha CSS Responsiva (Empilha no telemóvel e ajusta no PC)
-cards_html = '<div class="equity-grid">'
+# 5. Renderização em Contentor Flexível (Formato App Mobile Perfeito)
+html_output = '<div class="mobile-container">'
 
 for ticker, conf in acoes_config.items():
     dados = market_data[ticker]
@@ -149,52 +164,52 @@ for ticker, conf in acoes_config.items():
         pl = price / lpa if lpa > 0 else 0
         pvp = price / vpa if vpa > 0 else 0
         
-        cards_html += f"""
-        <div class="card-equity">
-            <div>
-                <img src="{conf['logo']}" style="max-width:90px; height:34px; margin:auto; object-fit:contain;">
-                <div class="label-text" style="margin-top:6px;">{ticker}</div>
-                <div style="font-size:18px; font-weight:700;">R$ {price:.2f}</div>
-                {badge_html}
-            </div>
-            <div>
-                <div style="margin-top:6px; text-align: left; background: #fdfdfd; padding: 5px 6px; border-radius: 8px; font-size:10.5px; border:1px solid #f1f5f9;">
-                    Bazin: <b>R$ {t_bazin:.2f}</b><br>
-                    Graham: <b>R$ {t_graham:.2f}</b><br>
-                    Teto: <b style="color:#1e3a8a">R$ {teto:.2f}</b>
-                </div>
-                <div class="box-base">
-                    <div style="font-weight:700; color:#334155; margin-bottom:2px; border-bottom:1px solid #e2e8f0; padding-bottom:2px;">📋 Métricas Base</div>
-                    <div class="grid-base">
-                        <div>LPA: <b>R$ {lpa:.2f}</b></div>
-                        <div>VPA: <b>R$ {vpa:.2f}</b></div>
-                        <div>Prov 12M: <b>R$ {div_pagos:.2f}</b></div>
-                        <div>P/L: <b>{pl:.1f}x</b> | P/VP: <b>{pvp:.2f}x</b></div>
-                    </div>
-                </div>
-                <div class="box-ipca">
-                    <div style="color: #0369a1; font-weight: 700; margin-bottom: 1px;">📊 Retorno Implícito</div>
-                    <div style="font-size: 11px; font-weight: 700; color: #0f172a;">IPCA + {ey_real:.2f}%</div>
-                    <div style="color: {cor_spread}; font-size: 9.5px; font-weight: 600; margin-top: 1px;">{sinal_spread}{spread_ntnb:.2f}% vs NTN-B</div>
-                </div>
-            </div>
-        </div>
-        """
+        html_output += f"""
+<div class="card-equity">
+<div>
+<img src="{conf['logo']}" style="max-width:90px; height:34px; margin:auto; object-fit:contain;">
+<div class="label-text" style="margin-top:6px;">{ticker}</div>
+<div style="font-size:18px; font-weight:700;">R$ {price:.2f}</div>
+{badge_html}
+</div>
+<div>
+<div style="margin-top:6px; text-align: left; background: #fdfdfd; padding: 5px 6px; border-radius: 8px; font-size:10.5px; border:1px solid #f1f5f9;">
+Bazin: <b>R$ {t_bazin:.2f}</b><br>
+Graham: <b>R$ {t_graham:.2f}</b><br>
+Teto: <b style="color:#1e3a8a">R$ {teto:.2f}</b>
+</div>
+<div class="box-base">
+<div style="font-weight:700; color:#334155; margin-bottom:2px; border-bottom:1px solid #e2e8f0; padding-bottom:2px;">📋 Métricas Base</div>
+<div class="grid-base">
+<div>LPA: <b>R$ {lpa:.2f}</b></div>
+<div>VPA: <b>R$ {vpa:.2f}</b></div>
+<div>Prov 12M: <b>R$ {div_pagos:.2f}</b></div>
+<div>P/L: <b>{pl:.1f}x</b> | P/VP: <b>{pvp:.2f}x</b></div>
+</div>
+</div>
+<div class="box-ipca">
+<div style="color: #0369a1; font-weight: 700; margin-bottom: 1px;">📊 Retorno Implícito</div>
+<div style="font-size: 11px; font-weight: 700; color: #0f172a;">IPCA + {ey_real:.2f}%</div>
+<div style="color: {cor_spread}; font-size: 9.5px; font-weight: 600; margin-top: 1px;">{sinal_spread}{spread_ntnb:.2f}% vs NTN-B</div>
+</div>
+</div>
+</div>
+"""
     else:
-        cards_html += f"""
-        <div class="card-equity">
-            <div>
-                <img src="{conf['logo']}" style="max-width:90px; height:34px; margin:auto; object-fit:contain;">
-                <div class="label-text" style="margin-top:6px;">{ticker}</div>
-                <div style="font-size:18px; font-weight:700;">R$ {price:.2f}</div>
-                <span class="badge-error">Sem Dados</span>
-            </div>
-            <div>
-                <div class="box-base" style="color:#64748b;">Aguardando dados...</div>
-                <div class="box-ipca" style="color:#64748b;">Aguardando preço...</div>
-            </div>
-        </div>
-        """
+        html_output += f"""
+<div class="card-equity">
+<div>
+<img src="{conf['logo']}" style="max-width:90px; height:34px; margin:auto; object-fit:contain;">
+<div class="label-text" style="margin-top:6px;">{ticker}</div>
+<div style="font-size:18px; font-weight:700;">R$ {price:.2f}</div>
+<span class="badge-error">Sem Dados</span>
+</div>
+<div>
+<div class="box-base" style="color:#64748b;">Aguardando dados...</div>
+<div class="box-ipca" style="color:#64748b;">Aguardando preço...</div>
+</div>
+</div>
+"""
 
-cards_html += '</div>'
-st.markdown(cards_html, unsafe_allow_html=True)
+html_output += '</div>'
+st.markdown(html_output, unsafe_allow_html=True)
