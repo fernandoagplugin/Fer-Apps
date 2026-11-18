@@ -7,7 +7,7 @@ import math
 LOGO_SIDEBAR = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5931da579a81ef961da034476ec3b8e82e/EquityDash%20Logo.png"
 LOGO_HEADER = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5931da579a81ef961da034476ec3b8e82e/EquityDash%20Horizontal.png"
 
-st.set_page_config(page_title="EquityDash Ultra v7.12", page_icon=LOGO_SIDEBAR, layout="wide")
+st.set_page_config(page_title="EquityDash Ultra v7.13", page_icon=LOGO_SIDEBAR, layout="wide")
 
 # --- CSS Profissional ---
 st.markdown(f"""
@@ -34,7 +34,7 @@ st.markdown(f"""
 st.sidebar.image(LOGO_SIDEBAR, use_container_width=True)
 st.markdown(f'<div class="main-header"><img src="{LOGO_HEADER}" class="header-logo"></div>', unsafe_allow_html=True)
 
-# 2. Ativos Configurados
+# 2. Ativos Configurados (Apenas AXIA3, CPLE3, CXSE3, ITSA4, PSSA3)
 acoes_config = {
     'AXIA3.SA': {'cor': '#3bb54a', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/AXIA.png"},
     'CPLE3.SA': {'cor': '#2d3e50', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/COPEL.png"},
@@ -52,7 +52,7 @@ st.sidebar.markdown("---")
 st.sidebar.title("🏛️ Renda Fixa (Benchmark)")
 taxa_ntnb = st.sidebar.number_input("Tesouro IPCA+ 10 Anos (%)", min_value=0.0, max_value=15.0, value=6.20, step=0.1)
 
-# 4. Engine de Dados Inteligente com Fallback
+# 4. Engine de Dados Inteligente com Fallback Robusto (Especial para AXIA3)
 @st.cache_data(ttl=600)
 def get_live_data():
     tickers = list(acoes_config.keys())
@@ -80,20 +80,25 @@ def get_live_data():
             lpa = info.get('trailingEps') or info.get('epsTrailingTwelveMonths') or info.get('forwardEps') or 0
             vpa = info.get('bookValue') or 0
             
-            # Fallback inteligente para LPA via P/L caso venha zero
+            # Fallback específico e robusto para AXIA3 (ou outras que venham zeradas)
             if lpa == 0 and preco > 0:
                 pe = info.get('trailingPE') or info.get('forwardPE')
                 if pe and pe > 0:
                     lpa = preco / pe
+                elif t == 'AXIA3.SA':
+                    lpa = 6.55  # Valor base atualizado de LPA para AXIA3 se a API falhar
                     
-            # Fallback inteligente para VPA via P/VP caso venha zero
             if vpa == 0 and preco > 0:
                 pb = info.get('priceToBook')
                 if pb and pb > 0:
                     vpa = preco / pb
+                elif t == 'AXIA3.SA':
+                    vpa = 41.03  # Valor base de VPA para AXIA3 se a API falhar
 
         except Exception as e:
             print(f"Erro ao buscar {t}: {e}")
+            if t == 'AXIA3.SA':
+                lpa, vpa = 6.55, 41.03
             
         results[t] = {'p': preco, 'lpa': lpa, 'vpa': vpa, 'div_pagos': divs_12m}
             
@@ -118,8 +123,8 @@ for i, ticker in enumerate(acoes_config.keys()):
         t_bazin = (div_pagos / yield_alvo_br) if (yield_alvo_br > 0 and div_pagos > 0) else 0
         t_graham = math.sqrt(max(0, 22.5 * lpa * vpa)) if (lpa > 0 and vpa > 0) else 0
         
-        # Pesos para o Preço Teto Híbrido (0.8 para defensivos/commodities sólidas)
-        peso_b = 0.8 if ticker in ['CXSE3.SA', 'PSSA3.SA', 'CPLE3.SA', 'VALE3.SA', 'TIMS3.SA'] else 0.5
+        # Pesos para o Preço Teto Híbrido (0.8 para defensivos/setor elétrico)
+        peso_b = 0.8 if ticker in ['CXSE3.SA', 'PSSA3.SA', 'CPLE3.SA', 'AXIA3.SA'] else 0.5
         
         if t_bazin > 0 and t_graham > 0:
             teto = (t_bazin * peso_b) + (t_graham * (1 - peso_b))
