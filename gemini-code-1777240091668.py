@@ -3,20 +3,20 @@ import yfinance as yf
 import pandas as pd
 import math
 
-# 1. Configurações da Página
+# 1. Configurações da Página (Layout Wide adaptativo)
 LOGO_SIDEBAR = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5931da579a81ef961da034476ec3b8e82e/EquityDash%20Logo.png"
 LOGO_HEADER = "https://raw.githubusercontent.com/fernandoagplugin/Icone/104a1e5931da579a81ef961da034476ec3b8e82e/EquityDash%20Horizontal.png"
 
-st.set_page_config(page_title="EquityDash Ultra v7.13", page_icon=LOGO_SIDEBAR, layout="wide")
+st.set_page_config(page_title="EquityDash Ultra v7.14", page_icon=LOGO_SIDEBAR, layout="wide")
 
-# --- CSS Profissional ---
+# --- CSS Profissional & Responsivo para Celular ---
 st.markdown(f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
     html, body, [class*="css"] {{ font-family: 'Inter', sans-serif; background-color: #f8f9fa; }}
     .main-header {{ background-color: #20B2AA; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 25px; }}
-    .header-logo {{ width: 500px; height: auto; display: block; margin: 0 auto; }}
-    .card-equity {{ background: white; padding: 16px; border-radius: 20px; border: 1px solid #eef2f6; box-shadow: 0 4px 12px rgba(0,0,0,0.03); text-align: center; height: 100%; display: flex; flex-direction: column; justify-content: space-between; }}
+    .header-logo {{ width: 100%; max-width: 500px; height: auto; display: block; margin: 0 auto; }}
+    .card-equity {{ background: white; padding: 16px; border-radius: 20px; border: 1px solid #eef2f6; box-shadow: 0 4px 12px rgba(0,0,0,0.03); text-align: center; height: 100%; display: flex; flex-direction: column; justify-content: space-between; margin-bottom: 16px; }}
     .badge-buy {{ background-color: #dcfce7; color: #15803d; padding: 4px 10px; border-radius: 12px; font-weight: 700; font-size: 11px; }}
     .badge-wait {{ background-color: #fef3c7; color: #92400e; padding: 4px 10px; border-radius: 12px; font-weight: 700; font-size: 11px; }}
     .badge-error {{ background-color: #fee2e2; color: #991b1b; padding: 4px 10px; border-radius: 12px; font-weight: 700; font-size: 11px; }}
@@ -34,7 +34,7 @@ st.markdown(f"""
 st.sidebar.image(LOGO_SIDEBAR, use_container_width=True)
 st.markdown(f'<div class="main-header"><img src="{LOGO_HEADER}" class="header-logo"></div>', unsafe_allow_html=True)
 
-# 2. Ativos Configurados (Apenas AXIA3, CPLE3, CXSE3, ITSA4, PSSA3)
+# 2. Ativos Configurados
 acoes_config = {
     'AXIA3.SA': {'cor': '#3bb54a', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/AXIA.png"},
     'CPLE3.SA': {'cor': '#2d3e50', 'logo': "https://raw.githubusercontent.com/fernandoagplugin/LOGOS/0261825cda3f92616b4c36e82cf5201588429c74/COPEL.png"},
@@ -52,7 +52,7 @@ st.sidebar.markdown("---")
 st.sidebar.title("🏛️ Renda Fixa (Benchmark)")
 taxa_ntnb = st.sidebar.number_input("Tesouro IPCA+ 10 Anos (%)", min_value=0.0, max_value=15.0, value=6.20, step=0.1)
 
-# 4. Engine de Dados Inteligente com Fallback Robusto (Especial para AXIA3)
+# 4. Engine de Dados Inteligente com Fallback Robusto
 @st.cache_data(ttl=600)
 def get_live_data():
     tickers = list(acoes_config.keys())
@@ -80,25 +80,29 @@ def get_live_data():
             lpa = info.get('trailingEps') or info.get('epsTrailingTwelveMonths') or info.get('forwardEps') or 0
             vpa = info.get('bookValue') or 0
             
-            # Fallback específico e robusto para AXIA3 (ou outras que venham zeradas)
+            # Fallbacks específicos se vierem zerados
             if lpa == 0 and preco > 0:
                 pe = info.get('trailingPE') or info.get('forwardPE')
                 if pe and pe > 0:
                     lpa = preco / pe
                 elif t == 'AXIA3.SA':
-                    lpa = 6.55  # Valor base atualizado de LPA para AXIA3 se a API falhar
+                    lpa = 3.97
                     
             if vpa == 0 and preco > 0:
                 pb = info.get('priceToBook')
                 if pb and pb > 0:
                     vpa = preco / pb
                 elif t == 'AXIA3.SA':
-                    vpa = 41.03  # Valor base de VPA para AXIA3 se a API falhar
+                    vpa = 41.92
+                    
+            # Fallback para dividendos da AXIA3 caso o histórico venha vazio
+            if divs_12m == 0 and t == 'AXIA3.SA':
+                divs_12m = 2.80  # Estimativa conservadora de proventos 12M se a API omitir
 
         except Exception as e:
             print(f"Erro ao buscar {t}: {e}")
             if t == 'AXIA3.SA':
-                lpa, vpa = 6.55, 41.03
+                lpa, vpa, divs_12m = 3.97, 41.92, 2.80
             
         results[t] = {'p': preco, 'lpa': lpa, 'vpa': vpa, 'div_pagos': divs_12m}
             
@@ -106,47 +110,50 @@ def get_live_data():
 
 market_data = get_live_data()
 
-# 5. Renderização dos Cards
-cols = st.columns(len(acoes_config))
+tickers_list = list(acoes_config.keys())
+num_ativos = len(tickers_list)
 
-for i, ticker in enumerate(acoes_config.keys()):
-    conf = acoes_config[ticker]
-    dados = market_data[ticker]
+# 5. Renderização Responsiva (organiza em linhas de até 3 colunas no PC, adaptando-se perfeitamente no telemóvel)
+colunas_por_linha = 3
+
+for i in range(0, num_ativos, colunas_por_linha):
+    chunk = tickers_list[i:i + colunas_por_linha]
+    cols = st.columns(len(chunk))
     
-    price = dados['p']
-    lpa = dados['lpa']
-    vpa = dados['vpa']
-    div_pagos = dados['div_pagos']
-    
-    if price > 0 and (lpa > 0 or vpa > 0 or div_pagos > 0):
-        # Valuation Híbrido
-        t_bazin = (div_pagos / yield_alvo_br) if (yield_alvo_br > 0 and div_pagos > 0) else 0
-        t_graham = math.sqrt(max(0, 22.5 * lpa * vpa)) if (lpa > 0 and vpa > 0) else 0
+    for j, ticker in enumerate(chunk):
+        conf = acoes_config[ticker]
+        dados = market_data[ticker]
         
-        # Pesos para o Preço Teto Híbrido (0.8 para defensivos/setor elétrico)
-        peso_b = 0.8 if ticker in ['CXSE3.SA', 'PSSA3.SA', 'CPLE3.SA', 'AXIA3.SA'] else 0.5
+        price = dados['p']
+        lpa = dados['lpa']
+        vpa = dados['vpa']
+        div_pagos = dados['div_pagos']
         
-        if t_bazin > 0 and t_graham > 0:
-            teto = (t_bazin * peso_b) + (t_graham * (1 - peso_b))
-        elif t_bazin > 0:
-            teto = t_bazin
-        else:
-            teto = t_graham
+        if price > 0 and (lpa > 0 or vpa > 0 or div_pagos > 0):
+            t_bazin = (div_pagos / yield_alvo_br) if (yield_alvo_br > 0 and div_pagos > 0) else 0
+            t_graham = math.sqrt(max(0, 22.5 * lpa * vpa)) if (lpa > 0 and vpa > 0) else 0
             
-        margem = ((teto - price) / teto) * 100 if teto > 0 else 0
-        badge_html = f'<span class="badge-buy">{margem:.1f}%</span>' if margem > 0 else f'<span class="badge-wait">{margem:.1f}%</span>'
-        
-        # IPCA+ (Earnings Yield)
-        ey_real = (lpa / price) * 100 if lpa > 0 and price > 0 else 0
-        spread_ntnb = ey_real - taxa_ntnb
-        cor_spread = "#15803d" if spread_ntnb >= 0 else "#b91c1c"
-        sinal_spread = "+" if spread_ntnb >= 0 else ""
-        
-        # Múltiplos
-        pl = price / lpa if lpa > 0 else 0
-        pvp = price / vpa if vpa > 0 else 0
-        
-        card_html = f"""<div class="card-equity">
+            peso_b = 0.8 if ticker in ['CXSE3.SA', 'PSSA3.SA', 'CPLE3.SA', 'AXIA3.SA'] else 0.5
+            
+            if t_bazin > 0 and t_graham > 0:
+                teto = (t_bazin * peso_b) + (t_graham * (1 - peso_b))
+            elif t_bazin > 0:
+                teto = t_bazin
+            else:
+                teto = t_graham
+                
+            margem = ((teto - price) / teto) * 100 if teto > 0 else 0
+            badge_html = f'<span class="badge-buy">{margem:.1f}%</span>' if margem > 0 else f'<span class="badge-wait">{margem:.1f}%</span>'
+            
+            ey_real = (lpa / price) * 100 if lpa > 0 and price > 0 else 0
+            spread_ntnb = ey_real - taxa_ntnb
+            cor_spread = "#15803d" if spread_ntnb >= 0 else "#b91c1c"
+            sinal_spread = "+" if spread_ntnb >= 0 else ""
+            
+            pl = price / lpa if lpa > 0 else 0
+            pvp = price / vpa if vpa > 0 else 0
+            
+            card_html = f"""<div class="card-equity">
 <div>
 <img src="{conf['logo']}" style="max-width:100px; height:38px; margin:auto; object-fit:contain;">
 <div class="label-text" style="margin-top:8px;">{ticker}</div>
@@ -176,8 +183,8 @@ Teto: <b style="color:#1e3a8a">R$ {teto:.2f}</b>
 </div>
 </div>"""
 
-    else:
-        card_html = f"""<div class="card-equity">
+        else:
+            card_html = f"""<div class="card-equity">
 <div>
 <img src="{conf['logo']}" style="max-width:100px; height:38px; margin:auto; object-fit:contain;">
 <div class="label-text" style="margin-top:8px;">{ticker}</div>
@@ -190,5 +197,5 @@ Teto: <b style="color:#1e3a8a">R$ {teto:.2f}</b>
 </div>
 </div>"""
 
-    with cols[i]:
-        st.markdown(card_html, unsafe_allow_html=True)
+        with cols[j]:
+            st.markdown(card_html, unsafe_allow_html=True)
